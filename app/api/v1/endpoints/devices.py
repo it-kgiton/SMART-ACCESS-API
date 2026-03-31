@@ -12,6 +12,7 @@ from app.schemas.device import (
     DeviceHeartbeat,
     DeviceAuthRequest,
     DeviceAuthResponse,
+    DeviceAssignOutlet,
 )
 from app.services.device_service import DeviceService
 from app.dependencies import (
@@ -120,6 +121,20 @@ async def update_device(
     device = await service.update(device_id, data)
     if not device:
         raise NotFoundException("Device")
+    return device
+
+
+@router.put("/{device_id}/assign-outlet", response_model=DeviceResponse)
+async def assign_device_to_outlet(
+    device_id: str,
+    data: DeviceAssignOutlet,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Assign a device to an outlet. Merchant admin can only assign within their own merchant."""
+    service = DeviceService(db)
+    merchant_id = get_user_merchant_id(current_user) if is_merchant_admin(current_user) else None
+    device = await service.assign_to_outlet(device_id, data, merchant_id=merchant_id)
     return device
 
 

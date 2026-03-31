@@ -70,3 +70,36 @@ class AuthService:
             select(User).where(User.id == user_id)
         )
         return result.scalar_one_or_none()
+
+    async def get_merchant_admin(self, merchant_id: str) -> Optional[User]:
+        result = await self.db.execute(
+            select(User).where(
+                User.merchant_id == merchant_id,
+                User.role == "merchant_admin",
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def update_admin_name(self, merchant_id: str, name: str) -> User:
+        from app.core.exceptions import NotFoundException
+        user = await self.get_merchant_admin(merchant_id)
+        if not user:
+            raise NotFoundException("Merchant admin account")
+        user.name = name
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def reset_admin_password(
+        self, merchant_id: str, new_password: str
+    ) -> User:
+        from app.core.exceptions import NotFoundException, BadRequestException
+        if len(new_password) < 8:
+            raise BadRequestException("Password must be at least 8 characters")
+        user = await self.get_merchant_admin(merchant_id)
+        if not user:
+            raise NotFoundException("Merchant admin account")
+        user.hashed_password = hash_password(new_password)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user

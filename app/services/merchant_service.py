@@ -3,19 +3,51 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.merchant import Merchant
+from app.models.user import User
 from app.schemas.merchant import MerchantCreate, MerchantUpdate
+from app.core.security import hash_password
+from app.core.exceptions import BadRequestException
 
 
 class MerchantService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, data: MerchantCreate) -> Merchant:
-        merchant = Merchant(**data.model_dump())
+    async def create(self, data: MerchantCreate) -> dict:
+        # Check if admin email already exists
+        existing_user = await self.db.execute(
+            select(User).where(User.email == data.admin.admin_email)
+        )
+        if existing_user.scalar_one_or_none():
+            raise BadRequestException("Admin email already registered")
+
+        merchant_data = data.model_dump(exclude={"admin"})
+        merchant = Merchant(**merchant_data)
         self.db.add(merchant)
+        await self.db.flush()
+
+        admin_user = User(
+            email=data.admin.admin_email,
+            hashed_password=hash_password(data.admin.admin_password),
+            name=data.admin.admin_name,
+            role="merchant_admin",
+            merchant_id=merchant.id,
+        )
+        self.db.add(admin_user)
         await self.db.commit()
         await self.db.refresh(merchant)
-        return merchant
+        await self.db.refresh(admin_user)
+
+        return {
+            "merchant": merchant,
+            "admin": {
+                "id": admin_user.id,
+                "email": admin_user.email,
+                "name": admin_user.name,
+                "role": admin_user.role,
+                "merchant_id": admin_user.merchant_id,
+            },
+        }
 
     async def get_by_id(self, merchant_id: str) -> Optional[Merchant]:
         result = await self.db.execute(

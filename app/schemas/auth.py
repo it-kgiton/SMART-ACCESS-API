@@ -43,3 +43,12 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class MerchantAdminUpdateName(BaseModel):
+    name: str
+
+
+class MerchantAdminResetPassword(BaseModel):
+    new_password: str
+    confirm_password: str

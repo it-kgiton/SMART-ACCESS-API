@@ -27,6 +27,12 @@ cp .env.example .env
 # Run database migrations
 alembic upgrade head
 
+# For update revision alembic
+alembic revision --autogenerate -m "add_license_key_and_merchant_id_columns"
+
+# Reset database
+python reset_db.py --yes --seed
+
 # Start development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```

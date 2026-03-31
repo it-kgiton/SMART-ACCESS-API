@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.auth import LoginRequest, LoginResponse, UserCreate, UserResponse
+from app.core.exceptions import BadRequestException
+from app.schemas.auth import (
+    LoginRequest, LoginResponse,
+    UserCreate, UserResponse,
+    MerchantAdminUpdateName, MerchantAdminResetPassword,
+)
 from app.services.auth_service import AuthService
 from app.dependencies import get_current_user, require_role
 
@@ -16,13 +21,13 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return result
 
 
-@router.post("/register", response_model=UserResponse)
-async def register(
+@router.post("/users", response_model=UserResponse)
+async def create_user(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role("platform_admin")),
 ):
-    """Only platform_admin can create new user accounts."""
+    """Only platform_admin can create new user accounts (merchant_admin, operator, etc)."""
     service = AuthService(db)
     user = await service.register(data)
     return user
@@ -35,4 +40,47 @@ async def get_me(
 ):
     service = AuthService(db)
     user = await service.get_user_by_id(current_user["sub"])
+    return user
+
+
+@router.get("/users/by-merchant/{merchant_id}", response_model=UserResponse)
+async def get_merchant_admin(
+    merchant_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role("platform_admin")),
+):
+    """Get the merchant_admin account linked to a merchant."""
+    from app.core.exceptions import NotFoundException
+    service = AuthService(db)
+    user = await service.get_merchant_admin(merchant_id)
+    if not user:
+        raise NotFoundException("Merchant admin account")
+    return user
+
+
+@router.patch("/users/by-merchant/{merchant_id}/name", response_model=UserResponse)
+async def update_merchant_admin_name(
+    merchant_id: str,
+    data: MerchantAdminUpdateName,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role("platform_admin")),
+):
+    """Update the name of the merchant_admin account."""
+    service = AuthService(db)
+    user = await service.update_admin_name(merchant_id, data.name)
+    return user
+
+
+@router.post("/users/by-merchant/{merchant_id}/reset-password", response_model=UserResponse)
+async def reset_merchant_admin_password(
+    merchant_id: str,
+    data: MerchantAdminResetPassword,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role("platform_admin")),
+):
+    """Reset the password of the merchant_admin account."""
+    if data.new_password != data.confirm_password:
+        raise BadRequestException("Passwords do not match")
+    service = AuthService(db)
+    user = await service.reset_admin_password(merchant_id, data.new_password)
     return user

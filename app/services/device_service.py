@@ -7,9 +7,9 @@ from loguru import logger
 from app.models.device import Device, DeviceStatus
 from app.models.outlet import Outlet
 from app.models.merchant import Merchant
-from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceHeartbeat
+from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceHeartbeat, DeviceAssignOutlet
 from app.core.security import create_device_token
-from app.core.exceptions import BadRequestException, ConflictException
+from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
 from app.services.kgiton_service import kgiton_service
 
 
@@ -193,3 +193,35 @@ class DeviceService:
         device.is_active = True
         await self.db.commit()
         return True
+
+    async def assign_to_outlet(
+        self, device_id: str, data: DeviceAssignOutlet, merchant_id: Optional[str] = None
+    ) -> Device:
+        device = await self.get_by_id(device_id)
+        if not device:
+            raise NotFoundException("Device not found")
+
+        # Validate outlet exists and belongs to merchant
+        outlet_result = await self.db.execute(
+            select(Outlet).where(Outlet.id == data.outlet_id)
+        )
+        outlet = outlet_result.scalar_one_or_none()
+        if not outlet:
+            raise NotFoundException("Outlet not found")
+
+        if merchant_id and outlet.merchant_id != merchant_id:
+            raise BadRequestException("Outlet does not belong to your merchant")
+
+        # If merchant_admin, verify device currently belongs to one of their outlets
+        if merchant_id:
+            current_outlet_result = await self.db.execute(
+                select(Outlet).where(Outlet.id == device.outlet_id)
+            )
+            current_outlet = current_outlet_result.scalar_one_or_none()
+            if not current_outlet or current_outlet.merchant_id != merchant_id:
+                raise BadRequestException("Device does not belong to your merchant")
+
+        device.outlet_id = data.outlet_id
+        await self.db.commit()
+        await self.db.refresh(device)
+        return device

@@ -21,6 +21,10 @@ class DeviceUpdate(BaseModel):
     status: Optional[str] = None
 
 
+class DeviceAssignOutlet(BaseModel):
+    outlet_id: str
+
+
 class DeviceResponse(BaseModel):
     id: str
     outlet_id: str

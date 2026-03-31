@@ -9,6 +9,7 @@ from app.schemas.merchant import (
     MerchantUpdate,
     MerchantResponse,
     MerchantListResponse,
+    MerchantCreateResponse,
 )
 from app.services.merchant_service import MerchantService
 from app.dependencies import (
@@ -76,19 +77,22 @@ async def get_merchant(
     return merchant
 
 
-@router.post("", response_model=MerchantResponse, status_code=201)
+@router.post("", response_model=MerchantCreateResponse, status_code=201)
 async def create_merchant(
     data: MerchantCreate,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role("platform_admin")),
 ):
-    """Only platform_admin can create merchants."""
+    """Only platform_admin can create merchants. Creates merchant + merchant_admin account."""
     service = MerchantService(db)
     existing = await service.get_by_code(data.code)
     if existing:
         raise ConflictException("Merchant code already exists")
-    merchant = await service.create(data)
-    return merchant
+    result = await service.create(data)
+    return MerchantCreateResponse(
+        merchant=MerchantResponse.model_validate(result["merchant"]),
+        admin=result["admin"],
+    )
 
 
 @router.put("/{merchant_id}", response_model=MerchantResponse)

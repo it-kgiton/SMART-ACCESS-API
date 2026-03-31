@@ -3,6 +3,12 @@ from typing import Optional
 from datetime import datetime
 
 
+class MerchantAdminAccount(BaseModel):
+    admin_name: str
+    admin_email: str
+    admin_password: str
+
+
 class MerchantCreate(BaseModel):
     name: str
     code: str
@@ -10,6 +16,7 @@ class MerchantCreate(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    admin: MerchantAdminAccount
 
 
 class MerchantUpdate(BaseModel):
@@ -35,6 +42,11 @@ class MerchantResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class MerchantCreateResponse(BaseModel):
+    merchant: MerchantResponse
+    admin: dict
 
 
 class MerchantListResponse(BaseModel):
