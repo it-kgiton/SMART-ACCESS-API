@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update as sql_update, delete as sql_delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.merchant import Merchant
@@ -62,14 +62,25 @@ class MerchantService:
         return result.scalar_one_or_none()
 
     async def list(
-        self, page: int = 1, page_size: int = 20, search: Optional[str] = None
+        self, page: int = 1, page_size: int = 20, search: Optional[str] = None,
+        is_active: Optional[bool] = None,
     ) -> tuple[list[Merchant], int]:
         query = select(Merchant)
         count_query = select(func.count()).select_from(Merchant)
 
         if search:
-            query = query.where(Merchant.name.ilike(f"%{search}%"))
-            count_query = count_query.where(Merchant.name.ilike(f"%{search}%"))
+            pattern = f"%{search}%"
+            condition = or_(
+                Merchant.name.ilike(pattern),
+                Merchant.code.ilike(pattern),
+                Merchant.email.ilike(pattern),
+            )
+            query = query.where(condition)
+            count_query = count_query.where(condition)
+
+        if is_active is not None:
+            query = query.where(Merchant.is_active == is_active)
+            count_query = count_query.where(Merchant.is_active == is_active)
 
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
@@ -97,6 +108,42 @@ class MerchantService:
         merchant = await self.get_by_id(merchant_id)
         if not merchant:
             return False
+
+        # Hard-delete all users linked to this merchant so their emails can be reused
+        await self.db.execute(
+            sql_delete(User).where(User.merchant_id == merchant_id)
+        )
+
         await self.db.delete(merchant)
         await self.db.commit()
         return True
+
+    async def reactivate(self, merchant_id: str) -> Optional[Merchant]:
+        merchant = await self.get_by_id(merchant_id)
+        if not merchant:
+            return None
+        merchant.is_active = True
+        # Re-enable all users linked to this merchant
+        await self.db.execute(
+            sql_update(User)
+            .where(User.merchant_id == merchant_id)
+            .values(is_active=True)
+        )
+        await self.db.commit()
+        await self.db.refresh(merchant)
+        return merchant
+
+    async def deactivate(self, merchant_id: str) -> Optional[Merchant]:
+        merchant = await self.get_by_id(merchant_id)
+        if not merchant:
+            return None
+        merchant.is_active = False
+        # Disable all users linked to this merchant
+        await self.db.execute(
+            sql_update(User)
+            .where(User.merchant_id == merchant_id)
+            .values(is_active=False)
+        )
+        await self.db.commit()
+        await self.db.refresh(merchant)
+        return merchant

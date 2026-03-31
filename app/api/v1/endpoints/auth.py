@@ -7,6 +7,7 @@ from app.schemas.auth import (
     LoginRequest, LoginResponse,
     UserCreate, UserResponse,
     MerchantAdminUpdateName, MerchantAdminResetPassword,
+    ProfileUpdateName, ProfileChangePassword,
 )
 from app.services.auth_service import AuthService
 from app.dependencies import get_current_user, require_role
@@ -83,4 +84,30 @@ async def reset_merchant_admin_password(
         raise BadRequestException("Passwords do not match")
     service = AuthService(db)
     user = await service.reset_admin_password(merchant_id, data.new_password)
+    return user
+
+
+@router.patch("/profile/name", response_model=UserResponse)
+async def update_profile_name(
+    data: ProfileUpdateName,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Update the display name of the currently logged-in user."""
+    service = AuthService(db)
+    user = await service.update_profile_name(current_user["sub"], data.name)
+    return user
+
+
+@router.post("/profile/change-password", response_model=UserResponse)
+async def change_password(
+    data: ProfileChangePassword,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Change the password of the currently logged-in user."""
+    if data.new_password != data.confirm_password:
+        raise BadRequestException("Passwords do not match")
+    service = AuthService(db)
+    user = await service.change_password(current_user["sub"], data.current_password, data.new_password)
     return user

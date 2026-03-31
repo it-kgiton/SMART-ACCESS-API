@@ -52,3 +52,13 @@ class MerchantAdminUpdateName(BaseModel):
 class MerchantAdminResetPassword(BaseModel):
     new_password: str
     confirm_password: str
+
+
+class ProfileUpdateName(BaseModel):
+    name: str
+
+
+class ProfileChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str

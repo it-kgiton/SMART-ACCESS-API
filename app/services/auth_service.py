@@ -103,3 +103,31 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+
+    async def update_profile_name(self, user_id: str, name: str) -> User:
+        from app.core.exceptions import NotFoundException, BadRequestException
+        if not name or not name.strip():
+            raise BadRequestException("Name cannot be empty")
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise NotFoundException("User")
+        user.name = name.strip()
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def change_password(
+        self, user_id: str, current_password: str, new_password: str
+    ) -> User:
+        from app.core.exceptions import NotFoundException, BadRequestException, UnauthorizedException
+        if len(new_password) < 8:
+            raise BadRequestException("New password must be at least 8 characters")
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise NotFoundException("User")
+        if not verify_password(current_password, user.hashed_password):
+            raise UnauthorizedException("Current password is incorrect")
+        user.hashed_password = hash_password(new_password)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user

@@ -29,6 +29,7 @@ async def list_merchants(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: Optional[str] = None,
+    is_active: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
 ):
@@ -49,7 +50,7 @@ async def list_merchants(
             page_size=page_size,
         )
 
-    items, total = await service.list(page=page, page_size=page_size, search=search)
+    items, total = await service.list(page=page, page_size=page_size, search=search, is_active=is_active)
     return MerchantListResponse(
         items=[MerchantResponse.model_validate(m) for m in items],
         total=total,
@@ -122,3 +123,31 @@ async def delete_merchant(
     if not deleted:
         raise NotFoundException("Merchant")
     return {"message": "Merchant deleted"}
+
+
+@router.post("/{merchant_id}/reactivate", response_model=MerchantResponse)
+async def reactivate_merchant(
+    merchant_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role("platform_admin")),
+):
+    """Only platform_admin can reactivate a deactivated merchant."""
+    service = MerchantService(db)
+    merchant = await service.reactivate(merchant_id)
+    if not merchant:
+        raise NotFoundException("Merchant")
+    return merchant
+
+
+@router.post("/{merchant_id}/deactivate", response_model=MerchantResponse)
+async def deactivate_merchant(
+    merchant_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role("platform_admin")),
+):
+    """Only platform_admin can deactivate a merchant."""
+    service = MerchantService(db)
+    merchant = await service.deactivate(merchant_id)
+    if not merchant:
+        raise NotFoundException("Merchant")
+    return merchant
