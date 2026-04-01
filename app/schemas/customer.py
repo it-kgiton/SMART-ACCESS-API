@@ -22,7 +22,7 @@ class CustomerUpdate(BaseModel):
 
 class CustomerResponse(BaseModel):
     id: str
-    merchant_id: Optional[str] = None
+    merchant_id: str
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None

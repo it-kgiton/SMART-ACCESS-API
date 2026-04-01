@@ -45,7 +45,7 @@ class Wallet(Base):
     )
 
     customer = relationship("Customer", back_populates="wallet")
-    ledger_entries = relationship("WalletLedger", back_populates="wallet", lazy="selectin")
+    ledger_entries = relationship("WalletLedger", back_populates="wallet", lazy="selectin", cascade="all, delete-orphan")
 
 
 class WalletLedger(Base):

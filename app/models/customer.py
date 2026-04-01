@@ -21,7 +21,7 @@ class Customer(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     merchant_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("merchants.id"), nullable=True
+        String(36), ForeignKey("merchants.id"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=True)
@@ -41,10 +41,10 @@ class Customer(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    wallet = relationship("Wallet", back_populates="customer", uselist=False, lazy="selectin")
+    wallet = relationship("Wallet", back_populates="customer", uselist=False, lazy="selectin", cascade="all, delete-orphan")
     face_credential = relationship(
-        "FaceCredential", back_populates="customer", uselist=False, lazy="selectin"
+        "FaceCredential", back_populates="customer", uselist=False, lazy="selectin", cascade="all, delete-orphan"
     )
     fingerprint_credential = relationship(
-        "FingerprintCredential", back_populates="customer", uselist=False, lazy="selectin"
+        "FingerprintCredential", back_populates="customer", uselist=False, lazy="selectin", cascade="all, delete-orphan"
     )

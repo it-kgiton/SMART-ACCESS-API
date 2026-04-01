@@ -96,6 +96,33 @@ class CustomerService:
         customer = await self.get_by_id(customer_id)
         if not customer:
             return False
-        customer.status = CustomerStatus.INACTIVE
+        await self.db.delete(customer)
         await self.db.commit()
         return True
+
+    async def activate(self, customer_id: str) -> Optional[Customer]:
+        customer = await self.get_by_id(customer_id)
+        if not customer:
+            return None
+        customer.status = CustomerStatus.ACTIVE
+        await self.db.commit()
+        await self.db.refresh(customer)
+        return customer
+
+    async def deactivate(self, customer_id: str) -> Optional[Customer]:
+        customer = await self.get_by_id(customer_id)
+        if not customer:
+            return None
+        customer.status = CustomerStatus.INACTIVE
+        await self.db.commit()
+        await self.db.refresh(customer)
+        return customer
+
+    async def suspend(self, customer_id: str) -> Optional[Customer]:
+        customer = await self.get_by_id(customer_id)
+        if not customer:
+            return None
+        customer.status = CustomerStatus.SUSPENDED
+        await self.db.commit()
+        await self.db.refresh(customer)
+        return customer

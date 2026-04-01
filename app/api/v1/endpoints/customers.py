@@ -111,6 +111,8 @@ async def create_customer(
     """Platform admin can create for any merchant. Merchant admin auto-assigns to their merchant."""
     if is_merchant_admin(current_user):
         data.merchant_id = get_user_merchant_id(current_user)
+    elif not data.merchant_id:
+        raise ForbiddenException("merchant_id is required when creating a customer as platform admin")
 
     service = CustomerService(db)
     c = await service.create(data)
@@ -171,20 +173,86 @@ async def update_customer(
 async def delete_customer(
     customer_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin")),
 ):
     service = CustomerService(db)
     c = await service.get_by_id(customer_id)
     if not c:
         raise NotFoundException("Customer")
 
-    # Merchant admin can only delete their own customers
-    if is_merchant_admin(current_user):
-        user_merchant_id = get_user_merchant_id(current_user)
-        if c.merchant_id != user_merchant_id:
-            raise ForbiddenException("You can only manage your own customers")
-
     deleted = await service.delete(customer_id)
     if not deleted:
         raise NotFoundException("Customer")
-    return {"message": "Customer deactivated"}
+    return {"message": "Customer deleted"}
+
+
+@router.post("/{customer_id}/activate", response_model=CustomerResponse)
+async def activate_customer(
+    customer_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    service = CustomerService(db)
+    c = await service.get_by_id(customer_id)
+    if not c:
+        raise NotFoundException("Customer")
+    if is_merchant_admin(current_user):
+        if c.merchant_id != get_user_merchant_id(current_user):
+            raise ForbiddenException("You can only manage your own customers")
+    c = await service.activate(customer_id)
+    return CustomerResponse(
+        id=c.id, merchant_id=c.merchant_id, name=c.name, email=c.email,
+        phone=c.phone, identity_number=c.identity_number, photo_url=c.photo_url,
+        status=c.status, has_face_credential=c.face_credential is not None,
+        has_fingerprint_credential=c.fingerprint_credential is not None,
+        wallet_balance=float(c.wallet.balance) if c.wallet else None,
+        created_at=c.created_at, updated_at=c.updated_at,
+    )
+
+
+@router.post("/{customer_id}/deactivate", response_model=CustomerResponse)
+async def deactivate_customer(
+    customer_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    service = CustomerService(db)
+    c = await service.get_by_id(customer_id)
+    if not c:
+        raise NotFoundException("Customer")
+    if is_merchant_admin(current_user):
+        if c.merchant_id != get_user_merchant_id(current_user):
+            raise ForbiddenException("You can only manage your own customers")
+    c = await service.deactivate(customer_id)
+    return CustomerResponse(
+        id=c.id, merchant_id=c.merchant_id, name=c.name, email=c.email,
+        phone=c.phone, identity_number=c.identity_number, photo_url=c.photo_url,
+        status=c.status, has_face_credential=c.face_credential is not None,
+        has_fingerprint_credential=c.fingerprint_credential is not None,
+        wallet_balance=float(c.wallet.balance) if c.wallet else None,
+        created_at=c.created_at, updated_at=c.updated_at,
+    )
+
+
+@router.post("/{customer_id}/suspend", response_model=CustomerResponse)
+async def suspend_customer(
+    customer_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    service = CustomerService(db)
+    c = await service.get_by_id(customer_id)
+    if not c:
+        raise NotFoundException("Customer")
+    if is_merchant_admin(current_user):
+        if c.merchant_id != get_user_merchant_id(current_user):
+            raise ForbiddenException("You can only manage your own customers")
+    c = await service.suspend(customer_id)
+    return CustomerResponse(
+        id=c.id, merchant_id=c.merchant_id, name=c.name, email=c.email,
+        phone=c.phone, identity_number=c.identity_number, photo_url=c.photo_url,
+        status=c.status, has_face_credential=c.face_credential is not None,
+        has_fingerprint_credential=c.fingerprint_credential is not None,
+        wallet_balance=float(c.wallet.balance) if c.wallet else None,
+        created_at=c.created_at, updated_at=c.updated_at,
+    )
