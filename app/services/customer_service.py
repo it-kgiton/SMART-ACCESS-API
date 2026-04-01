@@ -16,7 +16,6 @@ class CustomerService:
         customer = Customer(
             name=data.name,
             merchant_id=data.merchant_id,
-            external_id=data.external_id,
             email=data.email,
             phone=data.phone,
             identity_number=data.identity_number,
@@ -60,12 +59,10 @@ class CustomerService:
             query = query.where(
                 Customer.name.ilike(f"%{search}%")
                 | Customer.email.ilike(f"%{search}%")
-                | Customer.external_id.ilike(f"%{search}%")
             )
             count_query = count_query.where(
                 Customer.name.ilike(f"%{search}%")
                 | Customer.email.ilike(f"%{search}%")
-                | Customer.external_id.ilike(f"%{search}%")
             )
 
         if status:

@@ -23,7 +23,6 @@ class Customer(Base):
     merchant_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("merchants.id"), nullable=True
     )
-    external_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=True)
     phone: Mapped[str] = mapped_column(String(20), nullable=True)

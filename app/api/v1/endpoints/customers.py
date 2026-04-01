@@ -46,7 +46,6 @@ async def list_customers(
         resp = CustomerResponse(
             id=c.id,
             merchant_id=c.merchant_id,
-            external_id=c.external_id,
             name=c.name,
             email=c.email,
             phone=c.phone,
@@ -89,7 +88,6 @@ async def get_customer(
     return CustomerResponse(
         id=c.id,
         merchant_id=c.merchant_id,
-        external_id=c.external_id,
         name=c.name,
         email=c.email,
         phone=c.phone,
@@ -119,7 +117,6 @@ async def create_customer(
     return CustomerResponse(
         id=c.id,
         merchant_id=c.merchant_id,
-        external_id=c.external_id,
         name=c.name,
         email=c.email,
         phone=c.phone,
@@ -156,7 +153,6 @@ async def update_customer(
     return CustomerResponse(
         id=c.id,
         merchant_id=c.merchant_id,
-        external_id=c.external_id,
         name=c.name,
         email=c.email,
         phone=c.phone,

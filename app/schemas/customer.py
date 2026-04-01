@@ -6,7 +6,6 @@ from datetime import datetime
 class CustomerCreate(BaseModel):
     name: str
     merchant_id: Optional[str] = None
-    external_id: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     identity_number: Optional[str] = None
@@ -24,7 +23,6 @@ class CustomerUpdate(BaseModel):
 class CustomerResponse(BaseModel):
     id: str
     merchant_id: Optional[str] = None
-    external_id: Optional[str] = None
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
