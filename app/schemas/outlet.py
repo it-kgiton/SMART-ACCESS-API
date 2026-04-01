@@ -5,6 +5,12 @@ from datetime import datetime
 from app.models.outlet import BiometricMode
 
 
+class OutletAdminAccount(BaseModel):
+    admin_name: str
+    admin_email: str
+    admin_password: str
+
+
 class OutletCreate(BaseModel):
     merchant_id: str
     name: str
@@ -13,6 +19,7 @@ class OutletCreate(BaseModel):
     phone: Optional[str] = None
     biometric_mode: BiometricMode = BiometricMode.FACE_PRIMARY_FINGER_FALLBACK
     max_fallback_attempts: int = 2
+    admin: OutletAdminAccount
 
 
 class OutletUpdate(BaseModel):
@@ -38,6 +45,11 @@ class OutletResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class OutletCreateResponse(BaseModel):
+    outlet: OutletResponse
+    admin: dict
 
 
 class OutletListResponse(BaseModel):

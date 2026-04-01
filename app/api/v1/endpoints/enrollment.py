@@ -7,6 +7,7 @@ from app.schemas.enrollment import (
     FaceEnrollmentResponse,
     FingerprintEnrollmentResponse,
     EnrollmentStatusResponse,
+    FaceVerifyResponse,
 )
 from app.services.enrollment_service import EnrollmentService
 from app.services.customer_service import CustomerService
@@ -127,3 +128,20 @@ async def revoke_fingerprint(
         from app.core.exceptions import NotFoundException
         raise NotFoundException("Fingerprint credential")
     return {"message": "Fingerprint credential revoked"}
+
+
+@router.post("/face/{customer_id}/verify", response_model=FaceVerifyResponse)
+async def verify_face(
+    customer_id: str,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Verify a face image against a customer's enrolled face credential.
+    Returns similarity score, match result, and quality assessment."""
+    await _check_customer_access(customer_id, current_user, db)
+
+    image_bytes = await image.read()
+    service = EnrollmentService(db)
+    result = await service.verify_face(customer_id, image_bytes)
+    return FaceVerifyResponse(**result)

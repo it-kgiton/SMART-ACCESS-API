@@ -80,11 +80,31 @@ class AuthService:
         )
         return result.scalar_one_or_none()
 
+    async def get_outlet_admin(self, outlet_id: str) -> Optional[User]:
+        """Get the outlet_manager account linked to an outlet."""
+        result = await self.db.execute(
+            select(User).where(
+                User.outlet_id == outlet_id,
+                User.role == "outlet_manager",
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def update_admin_name(self, merchant_id: str, name: str) -> User:
         from app.core.exceptions import NotFoundException
         user = await self.get_merchant_admin(merchant_id)
         if not user:
             raise NotFoundException("Merchant admin account")
+        user.name = name
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_outlet_admin_name(self, outlet_id: str, name: str) -> User:
+        from app.core.exceptions import NotFoundException
+        user = await self.get_outlet_admin(outlet_id)
+        if not user:
+            raise NotFoundException("Outlet admin account")
         user.name = name
         await self.db.commit()
         await self.db.refresh(user)
@@ -99,6 +119,20 @@ class AuthService:
         user = await self.get_merchant_admin(merchant_id)
         if not user:
             raise NotFoundException("Merchant admin account")
+        user.hashed_password = hash_password(new_password)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def reset_outlet_admin_password(
+        self, outlet_id: str, new_password: str
+    ) -> User:
+        from app.core.exceptions import NotFoundException, BadRequestException
+        if len(new_password) < 8:
+            raise BadRequestException("Password must be at least 8 characters")
+        user = await self.get_outlet_admin(outlet_id)
+        if not user:
+            raise NotFoundException("Outlet admin account")
         user.hashed_password = hash_password(new_password)
         await self.db.commit()
         await self.db.refresh(user)

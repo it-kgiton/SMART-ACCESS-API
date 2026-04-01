@@ -29,3 +29,17 @@ class EnrollmentStatusResponse(BaseModel):
     has_fingerprint: bool
     fingerprint_status: Optional[str] = None
     fingerprint_quality: Optional[float] = None
+
+
+class FaceVerifyResponse(BaseModel):
+    matched: bool
+    similarity: float
+    threshold: float
+    customer_id: str
+    customer_name: str
+    submitted_quality: float
+    enrolled_quality: Optional[float] = None
+    confidence_label: str
+    det_score: Optional[float] = None
+    face_size: Optional[list] = None
+    num_faces: Optional[int] = None

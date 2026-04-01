@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.core.database import engine, Base
 from app.api.v1.router import api_router
+from app.services.biometric_engine import biometric_engine
 
 
 @asynccontextmanager
@@ -12,6 +13,8 @@ async def lifespan(app: FastAPI):
     # Startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Initialize InsightFace ArcFace model
+    await biometric_engine.initialize()
     yield
     # Shutdown
     await engine.dispose()
@@ -37,4 +40,8 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "version": settings.APP_VERSION}
+    return {
+        "status": "ok",
+        "version": settings.APP_VERSION,
+        "biometric_engine": "ready" if biometric_engine.is_ready else "not_loaded",
+    }

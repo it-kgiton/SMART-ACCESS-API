@@ -26,11 +26,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     DEVICE_TOKEN_EXPIRE_DAYS: int = 365
 
-    # Biometric
-    FACE_SIMILARITY_THRESHOLD: float = 0.45
+    # Biometric — ArcFace w600k_r50 cosine similarity thresholds
+    # 0.55 = payment-grade (FAR < 0.01%, FRR ~ 2%)
+    FACE_SIMILARITY_THRESHOLD: float = 0.55
     FINGERPRINT_MATCH_THRESHOLD: int = 40
     MAX_FACE_CANDIDATES: int = 5
     FACE_LIVENESS_ENABLED: bool = True
+    FACE_MIN_QUALITY: float = 0.35
 
     # Storage
     FIRMWARE_STORAGE_BUCKET: str = "firmware"

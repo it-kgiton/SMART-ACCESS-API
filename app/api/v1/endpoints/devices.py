@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import NotFoundException, ForbiddenException
 from app.schemas.device import (
     DeviceCreate,
     DeviceUpdate,
@@ -15,12 +15,16 @@ from app.schemas.device import (
     DeviceAssignOutlet,
 )
 from app.services.device_service import DeviceService
+from app.services.outlet_service import OutletService
 from app.dependencies import (
     get_current_user,
     require_role,
     require_any_role,
+    is_platform_admin,
     is_merchant_admin,
+    is_outlet_manager,
     get_user_merchant_id,
+    get_user_outlet_id,
 )
 
 router = APIRouter()
@@ -60,9 +64,26 @@ async def list_devices(
     outlet_id: Optional[str] = None,
     status: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin", "outlet_manager")),
 ):
     service = DeviceService(db)
+
+    # Outlet manager is scoped to their own outlet's devices
+    if is_outlet_manager(current_user):
+        user_outlet_id = get_user_outlet_id(current_user)
+        items, total = await service.list_all(
+            page=page,
+            page_size=page_size,
+            outlet_id=user_outlet_id,
+            status=status,
+            merchant_id=None,
+        )
+        return DeviceListResponse(
+            items=[DeviceResponse.model_validate(d) for d in items],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
 
     # Merchant admin is scoped to their own merchant's devices
     merchant_id = None
@@ -88,12 +109,19 @@ async def list_devices(
 async def get_device(
     device_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin", "outlet_manager")),
 ):
     service = DeviceService(db)
     device = await service.get_by_id(device_id)
     if not device:
         raise NotFoundException("Device")
+
+    # Outlet manager can only see devices for their outlet
+    if is_outlet_manager(current_user):
+        user_outlet_id = get_user_outlet_id(current_user)
+        if device.outlet_id != user_outlet_id:
+            raise ForbiddenException("You can only view devices for your own outlet")
+
     return device
 
 
@@ -101,9 +129,14 @@ async def get_device(
 async def create_device(
     data: DeviceCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role("platform_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin", "outlet_manager")),
 ):
-    """Only platform_admin can register devices (requires KGiTON license validation)."""
+    """Platform admin can register any device. Outlet manager can register devices for their own outlet only."""
+    if is_outlet_manager(current_user):
+        user_outlet_id = get_user_outlet_id(current_user)
+        if data.outlet_id != user_outlet_id:
+            raise ForbiddenException("You can only register devices for your own outlet")
+
     service = DeviceService(db)
     device = await service.create(data)
     return device

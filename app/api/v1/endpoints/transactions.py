@@ -10,7 +10,7 @@ from app.schemas.transaction import (
     TransactionStatsResponse,
 )
 from app.services.transaction_service import TransactionService
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, is_outlet_manager, get_user_outlet_id, is_merchant_admin, get_user_merchant_id
 
 router = APIRouter()
 
@@ -29,6 +29,13 @@ async def list_transactions(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    # Outlet manager is scoped to their own outlet
+    if is_outlet_manager(current_user):
+        outlet_id = get_user_outlet_id(current_user)
+        merchant_id = get_user_merchant_id(current_user)
+    elif is_merchant_admin(current_user):
+        merchant_id = get_user_merchant_id(current_user)
+
     service = TransactionService(db)
     items, total = await service.list_transactions(
         page=page,
@@ -58,6 +65,13 @@ async def get_transaction_stats(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    # Outlet manager is scoped to their own outlet
+    if is_outlet_manager(current_user):
+        outlet_id = get_user_outlet_id(current_user)
+        merchant_id = get_user_merchant_id(current_user)
+    elif is_merchant_admin(current_user):
+        merchant_id = get_user_merchant_id(current_user)
+
     service = TransactionService(db)
     stats = await service.get_stats(
         merchant_id=merchant_id,

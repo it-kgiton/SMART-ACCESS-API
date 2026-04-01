@@ -65,6 +65,15 @@ def is_merchant_admin(user: dict) -> bool:
     return user.get("role") == "merchant_admin"
 
 
+def is_outlet_manager(user: dict) -> bool:
+    return user.get("role") == "outlet_manager"
+
+
 def get_user_merchant_id(user: dict) -> Optional[str]:
     """Get the merchant_id from the current user's token. Returns None for platform_admin."""
     return user.get("merchant_id")
+
+
+def get_user_outlet_id(user: dict) -> Optional[str]:
+    """Get the outlet_id from the current user's token. Returns None if not set."""
+    return user.get("outlet_id")

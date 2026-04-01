@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import BadRequestException
+from app.core.exceptions import BadRequestException, ForbiddenException
 from app.schemas.auth import (
     LoginRequest, LoginResponse,
     UserCreate, UserResponse,
@@ -10,7 +10,10 @@ from app.schemas.auth import (
     ProfileUpdateName, ProfileChangePassword,
 )
 from app.services.auth_service import AuthService
-from app.dependencies import get_current_user, require_role
+from app.dependencies import (
+    get_current_user, require_role, require_any_role,
+    is_platform_admin, is_merchant_admin, get_user_merchant_id,
+)
 
 router = APIRouter()
 
@@ -86,6 +89,73 @@ async def reset_merchant_admin_password(
     user = await service.reset_admin_password(merchant_id, data.new_password)
     return user
 
+
+# ── Outlet admin management ──
+
+@router.get("/users/by-outlet/{outlet_id}", response_model=UserResponse)
+async def get_outlet_admin(
+    outlet_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Get the outlet_manager account linked to an outlet."""
+    from app.core.exceptions import NotFoundException
+    service = AuthService(db)
+    user = await service.get_outlet_admin(outlet_id)
+    if not user:
+        raise NotFoundException("Outlet admin account")
+
+    # Merchant admin can only see admin accounts for their own outlets
+    if is_merchant_admin(current_user):
+        user_merchant_id = get_user_merchant_id(current_user)
+        if user.merchant_id != user_merchant_id:
+            raise ForbiddenException("You can only view admin accounts for your own outlets")
+
+    return user
+
+
+@router.patch("/users/by-outlet/{outlet_id}/name", response_model=UserResponse)
+async def update_outlet_admin_name(
+    outlet_id: str,
+    data: MerchantAdminUpdateName,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Update the name of the outlet_manager account."""
+    if is_merchant_admin(current_user):
+        service = AuthService(db)
+        admin = await service.get_outlet_admin(outlet_id)
+        if admin and admin.merchant_id != get_user_merchant_id(current_user):
+            raise ForbiddenException("You can only update admin accounts for your own outlets")
+
+    service = AuthService(db)
+    user = await service.update_outlet_admin_name(outlet_id, data.name)
+    return user
+
+
+@router.post("/users/by-outlet/{outlet_id}/reset-password", response_model=UserResponse)
+async def reset_outlet_admin_password(
+    outlet_id: str,
+    data: MerchantAdminResetPassword,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Reset the password of the outlet_manager account."""
+    if data.new_password != data.confirm_password:
+        raise BadRequestException("Passwords do not match")
+
+    if is_merchant_admin(current_user):
+        service = AuthService(db)
+        admin = await service.get_outlet_admin(outlet_id)
+        if admin and admin.merchant_id != get_user_merchant_id(current_user):
+            raise ForbiddenException("You can only reset passwords for your own outlet accounts")
+
+    service = AuthService(db)
+    user = await service.reset_outlet_admin_password(outlet_id, data.new_password)
+    return user
+
+
+# ── Profile ──
 
 @router.patch("/profile/name", response_model=UserResponse)
 async def update_profile_name(

@@ -3,11 +3,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundException, ForbiddenException
+from app.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 from app.schemas.outlet import (
     OutletCreate,
     OutletUpdate,
     OutletResponse,
+    OutletCreateResponse,
     OutletListResponse,
 )
 from app.services.outlet_service import OutletService
@@ -17,7 +18,9 @@ from app.dependencies import (
     require_any_role,
     is_platform_admin,
     is_merchant_admin,
+    is_outlet_manager,
     get_user_merchant_id,
+    get_user_outlet_id,
 )
 
 router = APIRouter()
@@ -31,9 +34,24 @@ async def list_outlets(
     search: Optional[str] = None,
     is_active: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin", "outlet_manager")),
 ):
     service = OutletService(db)
+
+    # Outlet manager can only see their own outlet
+    if is_outlet_manager(current_user):
+        outlet_id = get_user_outlet_id(current_user)
+        if not outlet_id:
+            return OutletListResponse(items=[], total=0, page=page, page_size=page_size)
+        outlet = await service.get_by_id(outlet_id)
+        if not outlet:
+            return OutletListResponse(items=[], total=0, page=page, page_size=page_size)
+        return OutletListResponse(
+            items=[OutletResponse.model_validate(outlet)],
+            total=1,
+            page=1,
+            page_size=page_size,
+        )
 
     # Merchant admin is always scoped to their own merchant
     if is_merchant_admin(current_user):
@@ -63,12 +81,18 @@ async def list_outlets(
 async def get_outlet(
     outlet_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin", "outlet_manager")),
 ):
     service = OutletService(db)
     outlet = await service.get_by_id(outlet_id)
     if not outlet:
         raise NotFoundException("Outlet")
+
+    # Outlet manager can only see their own outlet
+    if is_outlet_manager(current_user):
+        user_outlet_id = get_user_outlet_id(current_user)
+        if outlet.id != user_outlet_id:
+            raise ForbiddenException("You can only view your own outlet")
 
     # Merchant admin can only see their own outlets
     if is_merchant_admin(current_user):
@@ -79,21 +103,25 @@ async def get_outlet(
     return outlet
 
 
-@router.post("", response_model=OutletResponse, status_code=201)
+@router.post("", response_model=OutletCreateResponse, status_code=201)
 async def create_outlet(
     data: OutletCreate,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
 ):
-    """Platform admin can create for any merchant. Merchant admin can only create for their own merchant."""
+    """Platform admin can create for any merchant. Merchant admin can only create for their own merchant.
+    Creates outlet + outlet_manager user account."""
     if is_merchant_admin(current_user):
         user_merchant_id = get_user_merchant_id(current_user)
         if data.merchant_id != user_merchant_id:
             raise ForbiddenException("You can only create outlets for your own merchant")
 
     service = OutletService(db)
-    outlet = await service.create(data)
-    return outlet
+    result = await service.create(data)
+    return OutletCreateResponse(
+        outlet=OutletResponse.model_validate(result["outlet"]),
+        admin=result["admin"],
+    )
 
 
 @router.put("/{outlet_id}", response_model=OutletResponse)
