@@ -29,6 +29,7 @@ async def list_outlets(
     page_size: int = Query(20, ge=1, le=100),
     merchant_id: Optional[str] = None,
     search: Optional[str] = None,
+    is_active: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
 ):
@@ -40,15 +41,15 @@ async def list_outlets(
         if not scoped_merchant_id:
             return OutletListResponse(items=[], total=0, page=page, page_size=page_size)
         items, total = await service.list_by_merchant(
-            scoped_merchant_id, page=page, page_size=page_size, search=search
+            scoped_merchant_id, page=page, page_size=page_size, search=search, is_active=is_active
         )
     elif merchant_id:
         items, total = await service.list_by_merchant(
-            merchant_id, page=page, page_size=page_size, search=search
+            merchant_id, page=page, page_size=page_size, search=search, is_active=is_active
         )
     else:
         items, total = await service.list_all(
-            page=page, page_size=page_size, search=search
+            page=page, page_size=page_size, search=search, is_active=is_active
         )
     return OutletListResponse(
         items=[OutletResponse.model_validate(o) for o in items],
@@ -117,14 +118,65 @@ async def update_outlet(
     return updated
 
 
+@router.post("/{outlet_id}/deactivate", response_model=OutletResponse)
+async def deactivate_outlet(
+    outlet_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Deactivate an outlet. Merchant admin can only deactivate their own outlets."""
+    service = OutletService(db)
+    outlet = await service.get_by_id(outlet_id)
+    if not outlet:
+        raise NotFoundException("Outlet")
+
+    if is_merchant_admin(current_user):
+        user_merchant_id = get_user_merchant_id(current_user)
+        if outlet.merchant_id != user_merchant_id:
+            raise ForbiddenException("You can only deactivate your own outlets")
+
+    updated = await service.deactivate(outlet_id)
+    return updated
+
+
+@router.post("/{outlet_id}/reactivate", response_model=OutletResponse)
+async def reactivate_outlet(
+    outlet_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
+):
+    """Reactivate an outlet. Merchant admin can only reactivate their own outlets."""
+    service = OutletService(db)
+    outlet = await service.get_by_id(outlet_id)
+    if not outlet:
+        raise NotFoundException("Outlet")
+
+    if is_merchant_admin(current_user):
+        user_merchant_id = get_user_merchant_id(current_user)
+        if outlet.merchant_id != user_merchant_id:
+            raise ForbiddenException("You can only reactivate your own outlets")
+
+    updated = await service.reactivate(outlet_id)
+    return updated
+
+
 @router.delete("/{outlet_id}")
 async def delete_outlet(
     outlet_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role("platform_admin")),
+    current_user: dict = Depends(require_any_role("platform_admin", "merchant_admin")),
 ):
-    """Only platform_admin can delete outlets."""
+    """Platform admin can delete any outlet. Merchant admin can only delete their own outlets."""
     service = OutletService(db)
+    outlet = await service.get_by_id(outlet_id)
+    if not outlet:
+        raise NotFoundException("Outlet")
+
+    if is_merchant_admin(current_user):
+        user_merchant_id = get_user_merchant_id(current_user)
+        if outlet.merchant_id != user_merchant_id:
+            raise ForbiddenException("You can only delete your own outlets")
+
     deleted = await service.delete(outlet_id)
     if not deleted:
         raise NotFoundException("Outlet")

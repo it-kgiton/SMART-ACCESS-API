@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.outlet import Outlet
@@ -29,6 +29,7 @@ class OutletService:
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
+        is_active: Optional[bool] = None,
     ) -> tuple[list[Outlet], int]:
         query = select(Outlet).where(Outlet.merchant_id == merchant_id)
         count_query = select(func.count()).select_from(Outlet).where(
@@ -36,8 +37,12 @@ class OutletService:
         )
 
         if search:
-            query = query.where(Outlet.name.ilike(f"%{search}%"))
-            count_query = count_query.where(Outlet.name.ilike(f"%{search}%"))
+            query = query.where(or_(Outlet.name.ilike(f"%{search}%"), Outlet.code.ilike(f"%{search}%")))
+            count_query = count_query.where(or_(Outlet.name.ilike(f"%{search}%"), Outlet.code.ilike(f"%{search}%")))
+
+        if is_active is not None:
+            query = query.where(Outlet.is_active == is_active)
+            count_query = count_query.where(Outlet.is_active == is_active)
 
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
@@ -49,14 +54,18 @@ class OutletService:
         return items, total
 
     async def list_all(
-        self, page: int = 1, page_size: int = 20, search: Optional[str] = None
+        self, page: int = 1, page_size: int = 20, search: Optional[str] = None, is_active: Optional[bool] = None
     ) -> tuple[list[Outlet], int]:
         query = select(Outlet)
         count_query = select(func.count()).select_from(Outlet)
 
         if search:
-            query = query.where(Outlet.name.ilike(f"%{search}%"))
-            count_query = count_query.where(Outlet.name.ilike(f"%{search}%"))
+            query = query.where(or_(Outlet.name.ilike(f"%{search}%"), Outlet.code.ilike(f"%{search}%")))
+            count_query = count_query.where(or_(Outlet.name.ilike(f"%{search}%"), Outlet.code.ilike(f"%{search}%")))
+
+        if is_active is not None:
+            query = query.where(Outlet.is_active == is_active)
+            count_query = count_query.where(Outlet.is_active == is_active)
 
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
@@ -76,6 +85,24 @@ class OutletService:
         for field, value in update_data.items():
             setattr(outlet, field, value)
 
+        await self.db.commit()
+        await self.db.refresh(outlet)
+        return outlet
+
+    async def deactivate(self, outlet_id: str) -> Optional[Outlet]:
+        outlet = await self.get_by_id(outlet_id)
+        if not outlet:
+            return None
+        outlet.is_active = False
+        await self.db.commit()
+        await self.db.refresh(outlet)
+        return outlet
+
+    async def reactivate(self, outlet_id: str) -> Optional[Outlet]:
+        outlet = await self.get_by_id(outlet_id)
+        if not outlet:
+            return None
+        outlet.is_active = True
         await self.db.commit()
         await self.db.refresh(outlet)
         return outlet
