@@ -1,0 +1,2 @@
+@Library('jenkins-pipeline@v.0.1') _
+biometricPaymentApi()
