@@ -82,8 +82,8 @@ async def main(skip_confirm: bool) -> None:
         else:
             sa_id = _uid()
             await conn.execute(
-                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, is_active, created_at, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, true, $7, $7)""",
+                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, status, is_active, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, 'active', true, $7, $7)""",
                 sa_id, sa_email, hashed_pw, "Super Admin", "08000000000", "super_admin", now,
             )
             print(f"  ✓  [super_admin] Super Admin ({sa_email})")
@@ -97,8 +97,8 @@ async def main(skip_confirm: bool) -> None:
         else:
             ah_id = _uid()
             await conn.execute(
-                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, region_id, is_active, created_at, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8)""",
+                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, region_id, status, is_active, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', true, $8, $8)""",
                 ah_id, ah_email, hashed_pw, "Admin Hub Jawa Timur", "08000000001", "admin_hub", region_id, now,
             )
             print(f"  ✓  [admin_hub] Admin Hub Jawa Timur ({ah_email})")
@@ -114,10 +114,10 @@ async def main(skip_confirm: bool) -> None:
             print("  ⚠  School SDN-SBY-001 sudah ada — skip.")
         else:
             await conn.execute(
-                """INSERT INTO schools (id, region_id, school_code, school_name, school_type, address, phone, email, status, created_at, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)""",
+                """INSERT INTO schools (id, region_id, school_code, school_name, school_type, address, status, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)""",
                 school_id, region_id, "SDN-SBY-001", "SDN Surabaya 001", "sd",
-                "Jl. Pahlawan No. 10, Surabaya", "031-11111111", "sdn001@surabaya.sch.id",
+                "Jl. Pahlawan No. 10, Surabaya",
                 "active", now,
             )
             print("  ✓  School: SDN Surabaya 001 (SDN-SBY-001)")
@@ -130,8 +130,8 @@ async def main(skip_confirm: bool) -> None:
         else:
             ao_id = _uid()
             await conn.execute(
-                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, school_id, is_active, created_at, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8)""",
+                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, school_id, status, is_active, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', true, $8, $8)""",
                 ao_id, ao_email, hashed_pw, "Admin Ops SDN Surabaya 001", "08000000002", "admin_ops", school_id, now,
             )
             print(f"  ✓  [admin_ops] Admin Ops SDN Surabaya 001 ({ao_email})")
@@ -145,8 +145,8 @@ async def main(skip_confirm: bool) -> None:
             merchant_id = _uid()
             m_user_id = _uid()
             await conn.execute(
-                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, school_id, merchant_id, is_active, created_at, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $9)""",
+                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, school_id, merchant_id, status, is_active, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', true, $9, $9)""",
                 m_user_id, m_email, hashed_pw, "Pedagang Demo", "08123456789", "merchant",
                 school_id, merchant_id, now,
             )
@@ -166,8 +166,8 @@ async def main(skip_confirm: bool) -> None:
             parent_id = _uid()
             p_user_id = _uid()
             await conn.execute(
-                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, school_id, is_active, created_at, updated_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8)""",
+                """INSERT INTO users (id, email, hashed_password, full_name, phone, role, school_id, status, is_active, created_at, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', true, $8, $8)""",
                 p_user_id, p_email, hashed_pw, "Orang Tua Demo", "08111111111", "parent", school_id, now,
             )
             await conn.execute(

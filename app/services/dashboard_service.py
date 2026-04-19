@@ -79,7 +79,7 @@ class DashboardService:
         enrolled = (await self.db.execute(
             select(func.count(Client.id)).where(Client.biometric_enrolled == True)
         )).scalar() or 0
-        enrollment_rate = (enrolled / total_clients * 100) if total_clients > 0 else 0
+        enrollment_rate = (enrolled / total_clients) if total_clients > 0 else 0
 
         return {
             "total_transactions": total_txn,
@@ -91,5 +91,5 @@ class DashboardService:
             "active_devices": active_devices,
             "pending_approvals": pending_approvals,
             "open_tickets": open_tickets,
-            "enrollment_rate": round(enrollment_rate, 1),
+            "enrollment_rate": round(enrollment_rate, 4),
         }

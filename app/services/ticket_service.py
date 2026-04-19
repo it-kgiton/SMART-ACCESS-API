@@ -48,6 +48,7 @@ class TicketService:
 
     async def list(
         self, school_id: Optional[str] = None, status: Optional[str] = None,
+        priority: Optional[str] = None, assigned_to: Optional[str] = None,
         created_by: Optional[str] = None, skip: int = 0, limit: int = 50,
     ) -> tuple:
         query = select(Ticket)
@@ -59,6 +60,12 @@ class TicketService:
         if status:
             query = query.where(Ticket.status == status)
             count_query = count_query.where(Ticket.status == status)
+        if priority:
+            query = query.where(Ticket.priority == priority)
+            count_query = count_query.where(Ticket.priority == priority)
+        if assigned_to:
+            query = query.where(Ticket.assigned_to == assigned_to)
+            count_query = count_query.where(Ticket.assigned_to == assigned_to)
         if created_by:
             query = query.where(Ticket.created_by == created_by)
             count_query = count_query.where(Ticket.created_by == created_by)
@@ -91,3 +98,10 @@ class TicketService:
         await self.db.commit()
         await self.db.refresh(ticket)
         return ticket
+
+    async def delete(self, ticket_id: str) -> None:
+        ticket = await self.get_by_id(ticket_id)
+        if not ticket:
+            raise NotFoundException("Ticket")
+        await self.db.delete(ticket)
+        await self.db.commit()

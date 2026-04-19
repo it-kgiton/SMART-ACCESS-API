@@ -29,9 +29,9 @@ class UserResponse(BaseModel):
     id: str
     email: str
     phone: Optional[str] = None
-    full_name: str
+    full_name: Optional[str] = ""
     role: str
-    status: str
+    status: Optional[str] = "active"
     region_id: Optional[str] = None
     school_id: Optional[str] = None
     merchant_id: Optional[str] = None

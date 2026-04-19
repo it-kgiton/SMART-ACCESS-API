@@ -18,7 +18,7 @@ async def create_ticket(
     current_user: dict = Depends(get_current_user),
 ):
     service = TicketService(db)
-    ticket = await service.create(data, created_by=current_user["id"])
+    ticket = await service.create(data, created_by=current_user["sub"])
     return {"success": True, "data": TicketResponse.model_validate(ticket)}
 
 
@@ -72,5 +72,16 @@ async def resolve_ticket(
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops")),
 ):
     service = TicketService(db)
-    ticket = await service.resolve(ticket_id, resolved_by=current_user["id"])
+    ticket = await service.resolve(ticket_id)
     return {"success": True, "data": TicketResponse.model_validate(ticket)}
+
+
+@router.delete("/{ticket_id}")
+async def delete_ticket(
+    ticket_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub")),
+):
+    service = TicketService(db)
+    await service.delete(ticket_id)
+    return {"success": True, "message": "Ticket deleted"}

@@ -16,12 +16,12 @@ async def list_notifications(
     current_user: dict = Depends(get_current_user),
 ):
     service = NotificationService(db)
-    result = await service.list_for_user(current_user["id"], skip=skip, limit=limit)
+    items, total, unread_count = await service.list_for_user(current_user["sub"], skip=skip, limit=limit)
     return {
         "success": True,
-        "data": [NotificationResponse.model_validate(n) for n in result["items"]],
-        "total": result["total"],
-        "unread_count": result["unread_count"],
+        "data": [NotificationResponse.model_validate(n) for n in items],
+        "total": total,
+        "unread_count": unread_count,
     }
 
 
@@ -32,7 +32,7 @@ async def mark_notification_read(
     current_user: dict = Depends(get_current_user),
 ):
     service = NotificationService(db)
-    await service.mark_read(notification_id)
+    await service.mark_read(notification_id, current_user["sub"])
     return {"success": True, "message": "Notification marked as read"}
 
 
@@ -42,5 +42,5 @@ async def mark_all_notifications_read(
     current_user: dict = Depends(get_current_user),
 ):
     service = NotificationService(db)
-    await service.mark_all_read(current_user["id"])
+    await service.mark_all_read(current_user["sub"])
     return {"success": True, "message": "All notifications marked as read"}

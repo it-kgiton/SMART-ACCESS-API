@@ -62,7 +62,7 @@ async def list_transactions(
     service = TransactionService(db)
     transactions, total = await service.list_transactions(
         school_id=school_id, client_id=client_id, merchant_id=merchant_id,
-        type=type, status=status, date_from=date_from, date_to=date_to,
+        txn_type=type, status=status, date_from=date_from, date_to=date_to,
         skip=skip, limit=limit,
     )
     return {
@@ -72,7 +72,7 @@ async def list_transactions(
     }
 
 
-@router.get("/stats", response_model=TransactionStatsResponse)
+@router.get("/stats")
 async def get_transaction_stats(
     school_id: Optional[str] = None,
     merchant_id: Optional[str] = None,
@@ -86,7 +86,7 @@ async def get_transaction_stats(
         school_id=school_id, merchant_id=merchant_id,
         date_from=date_from, date_to=date_to,
     )
-    return stats
+    return {"success": True, "data": stats}
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)

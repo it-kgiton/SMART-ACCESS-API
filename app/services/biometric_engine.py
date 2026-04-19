@@ -1,4 +1,5 @@
 import io
+import asyncio
 import numpy as np
 from typing import Optional
 from loguru import logger
@@ -23,8 +24,8 @@ class BiometricEngine:
         self._face_model = None
         self._initialized = False
 
-    async def initialize(self):
-        """Initialize InsightFace model. Must be called on startup."""
+    def _initialize_sync(self):
+        """Synchronous part — runs in a thread pool so it doesn't block the event loop."""
         try:
             from insightface.app import FaceAnalysis
 
@@ -40,6 +41,11 @@ class BiometricEngine:
         except Exception as e:
             logger.error(f"CRITICAL: InsightFace failed to load: {e}")
             self._initialized = False
+
+    async def initialize(self):
+        """Initialize InsightFace model in a thread pool (non-blocking for the event loop)."""
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self._initialize_sync)
 
     @property
     def is_ready(self) -> bool:

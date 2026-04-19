@@ -37,7 +37,7 @@ async def list_devices(
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops")),
 ):
     service = DeviceService(db)
-    devices, total = await service.list(
+    devices, total = await service.list_all(
         school_id=school_id, merchant_id=merchant_id, status=status,
         skip=skip, limit=limit,
     )

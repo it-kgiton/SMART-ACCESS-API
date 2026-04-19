@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -13,8 +14,8 @@ async def lifespan(app: FastAPI):
     # Startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    # Initialize InsightFace ArcFace model
-    await biometric_engine.initialize()
+    # Initialize InsightFace ArcFace model in background — server starts immediately
+    asyncio.create_task(biometric_engine.initialize())
     yield
     # Shutdown
     await engine.dispose()

@@ -85,10 +85,14 @@ class AuthService:
     async def list_users(
         self, role: Optional[str] = None, school_id: Optional[str] = None,
         region_id: Optional[str] = None, skip: int = 0, limit: int = 50,
+        exclude_roles: Optional[List[str]] = None,
     ) -> tuple:
         query = select(User).where(User.is_active == True)
         count_query = select(func.count(User.id)).where(User.is_active == True)
 
+        if exclude_roles:
+            query = query.where(~User.role.in_(exclude_roles))
+            count_query = count_query.where(~User.role.in_(exclude_roles))
         if role:
             query = query.where(User.role == role)
             count_query = count_query.where(User.role == role)

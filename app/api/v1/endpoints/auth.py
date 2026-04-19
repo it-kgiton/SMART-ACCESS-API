@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app.core.database import get_db
 from app.core.exceptions import BadRequestException
@@ -7,7 +9,9 @@ from app.schemas.auth import (
     LoginRequest, LoginResponse, UserCreate, UserResponse, UserUpdate,
     ProfileUpdateName, ProfileChangePassword, UserListResponse,
 )
+from app.schemas.approval import ApprovalCreate
 from app.services.auth_service import AuthService
+from app.services.approval_service import ApprovalService
 from app.dependencies import get_current_user, require_role, require_any_role
 
 router = APIRouter()
@@ -20,15 +24,33 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return {"success": True, "data": result}
 
 
-@router.post("/users", response_model=UserResponse)
+@router.post("/users")
 async def create_user(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub")),
 ):
+    # super_admin creates directly, admin_hub goes through approval
+    if current_user["role"] == "admin_hub":
+        approval_service = ApprovalService(db)
+        approval_data = ApprovalCreate(
+            request_type="create_admin_ops",
+            entity_type="user",
+            entity_data=json.dumps(data.model_dump(), default=str),
+        )
+        approval = await approval_service.create(approval_data, requestor_id=current_user["sub"])
+        return JSONResponse(
+            status_code=202,
+            content={
+                "success": True,
+                "message": "User creation submitted for approval",
+                "approval_id": approval.id,
+            },
+        )
+
     service = AuthService(db)
     user = await service.register(data)
-    return user
+    return UserResponse.model_validate(user)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -73,8 +95,18 @@ async def list_users(
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops")),
 ):
     service = AuthService(db)
+
+    caller_role = current_user["role"]
+    if caller_role == "admin_hub":
+        exclude_roles = ["super_admin", "admin_hub"]
+    elif caller_role == "admin_ops":
+        exclude_roles = ["super_admin", "admin_hub", "admin_ops"]
+    else:
+        exclude_roles = ["super_admin"]
+
     users, total = await service.list_users(
         role=role, school_id=school_id, region_id=region_id, skip=skip, limit=limit,
+        exclude_roles=exclude_roles,
     )
     return {"success": True, "data": [UserResponse.model_validate(u) for u in users], "total": total}
 

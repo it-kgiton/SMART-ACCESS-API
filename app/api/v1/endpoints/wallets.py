@@ -53,8 +53,6 @@ async def get_wallet_ledger(
         raise NotFoundException("Wallet")
     items, total = await service.get_ledger(wallet.id, page=page, page_size=page_size)
     return WalletLedgerListResponse(
-        items=[WalletLedgerResponse.model_validate(l) for l in items],
+        data=[WalletLedgerResponse.model_validate(l) for l in items],
         total=total,
-        page=page,
-        page_size=page_size,
     )

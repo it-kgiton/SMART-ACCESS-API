@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.dashboard import DashboardResponse, AuditLogResponse
+from app.schemas.dashboard import AuditLogResponse
 from app.services.dashboard_service import DashboardService
 from app.services.audit_service import AuditService
 from app.dependencies import get_current_user, require_any_role
@@ -11,7 +11,7 @@ from app.dependencies import get_current_user, require_any_role
 router = APIRouter()
 
 
-@router.get("/stats", response_model=DashboardResponse)
+@router.get("/stats")
 async def get_dashboard_stats(
     school_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
@@ -19,7 +19,7 @@ async def get_dashboard_stats(
 ):
     service = DashboardService(db)
     stats = await service.get_stats(school_id=school_id)
-    return stats
+    return {"success": True, "data": stats}
 
 
 @router.get("/audit-logs")
