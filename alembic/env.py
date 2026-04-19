@@ -11,16 +11,12 @@ from app.config import settings
 from app.core.database import Base
 
 # Import all models so they are registered with Base.metadata
-from app.models.merchant import Merchant
-from app.models.outlet import Outlet
-from app.models.device import Device
-from app.models.customer import Customer
-from app.models.wallet import Wallet, WalletLedger
-from app.models.transaction import Transaction
-from app.models.biometric import FaceCredential, FingerprintCredential
-from app.models.audit import AuditLog
-from app.models.user import User
-from app.models.firmware import FirmwareVersion
+from app.models import (  # noqa: F401
+    User, Region, School, Merchant, Product, Parent, Client,
+    Wallet, WalletLedger, FaceCredential, FingerprintCredential,
+    Transaction, TransactionItem, Device, Ticket, Notification,
+    ApprovalRequest, AuditLog, FirmwareVersion,
+)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.models.device import Device, DeviceStatus
-from app.models.outlet import Outlet
+from app.models.school import School
 from app.models.merchant import Merchant
-from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceHeartbeat, DeviceAssignOutlet
+from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceHeartbeat
 from app.core.security import create_device_token
 from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
 from app.services.kgiton_service import kgiton_service
@@ -18,35 +18,33 @@ class DeviceService:
         self.db = db
 
     async def create(self, data: DeviceCreate) -> Device:
-        # Validate license key with KGiTON API
-        license_info = await kgiton_service.validate_license(data.license_key)
-        if not license_info:
-            raise BadRequestException(
-                "Invalid license key. License not found in KGiTON system."
-            )
-
-        # Check ownership
-        ownership = await kgiton_service.validate_license_ownership(data.license_key)
-        if not ownership or not ownership.get("is_owner", False):
-            raise BadRequestException(
-                "License key is not assigned to this account in KGiTON."
-            )
-
-        # Check if license_key already registered
+        # Check duplicate serial
         existing = await self.db.execute(
-            select(Device).where(Device.license_key == data.license_key)
+            select(Device).where(Device.device_serial == data.device_serial)
         )
         if existing.scalar_one_or_none():
-            raise ConflictException("License key already registered to another device")
+            raise ConflictException("Device serial already registered")
 
-        device_data = data.model_dump()
-        # Sync device info from KGiTON
-        device_data["device_serial_number"] = license_info.get("device_serial_number")
-        device_data["device_model"] = license_info.get("device_model")
-        if not device_data.get("name") and license_info.get("device_name"):
-            device_data["name"] = license_info.get("device_name")
+        # Validate license if provided
+        if data.license_key:
+            license_info = await kgiton_service.validate_license(data.license_key)
+            if not license_info:
+                raise BadRequestException("Invalid license key")
 
-        device = Device(**device_data)
+            existing_license = await self.db.execute(
+                select(Device).where(Device.license_key == data.license_key)
+            )
+            if existing_license.scalar_one_or_none():
+                raise ConflictException("License key already registered")
+
+        device = Device(
+            device_serial=data.device_serial,
+            school_id=data.school_id,
+            merchant_id=data.merchant_id,
+            device_type=data.device_type or "combo_device",
+            name=data.name,
+            license_key=data.license_key,
+        )
         self.db.add(device)
         await self.db.commit()
         await self.db.refresh(device)
@@ -58,120 +56,92 @@ class DeviceService:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_code(self, device_code: str) -> Optional[Device]:
+    async def get_by_serial(self, device_serial: str) -> Optional[Device]:
         result = await self.db.execute(
-            select(Device).where(Device.device_code == device_code)
+            select(Device).where(Device.device_serial == device_serial)
         )
         return result.scalar_one_or_none()
 
-    async def authenticate_device(self, device_code: str, mac_address: str) -> Optional[dict]:
-        device = await self.get_by_code(device_code)
+    async def authenticate_device(self, device_serial: str, license_key: str) -> Optional[dict]:
+        device = await self.get_by_serial(device_serial)
         if not device or not device.is_active:
             return None
         if device.status == DeviceStatus.BLOCKED:
             return None
-        if device.mac_address and device.mac_address != mac_address:
+        if device.license_key and device.license_key != license_key:
             return None
 
-        # Update MAC if first auth
-        if not device.mac_address:
-            device.mac_address = mac_address
+        device.status = DeviceStatus.ACTIVE
+        device.last_heartbeat = datetime.now(timezone.utc)
 
-        device.status = DeviceStatus.ONLINE
-        device.last_seen_at = datetime.now(timezone.utc)
+        config = {}
+        if device.school_id:
+            school_result = await self.db.execute(
+                select(School).where(School.id == device.school_id)
+            )
+            school = school_result.scalar_one_or_none()
+            if school:
+                config["school_name"] = school.school_name
 
-        # Get outlet and merchant info
-        outlet_result = await self.db.execute(
-            select(Outlet).where(Outlet.id == device.outlet_id)
-        )
-        outlet = outlet_result.scalar_one_or_none()
-        if not outlet:
-            return None
+        if device.merchant_id:
+            merchant_result = await self.db.execute(
+                select(Merchant).where(Merchant.id == device.merchant_id)
+            )
+            merchant = merchant_result.scalar_one_or_none()
+            if merchant:
+                config["merchant_name"] = merchant.business_name
 
-        merchant_result = await self.db.execute(
-            select(Merchant).where(Merchant.id == outlet.merchant_id)
-        )
-        merchant = merchant_result.scalar_one_or_none()
-        if not merchant:
-            return None
-
-        token = create_device_token(device.id, device.device_code)
-
+        token = create_device_token(device.id, device.device_serial)
         await self.db.commit()
 
         return {
             "token": token,
             "device_id": device.id,
-            "outlet_id": outlet.id,
-            "merchant_id": merchant.id,
-            "biometric_mode": outlet.biometric_mode,
-            "config": {
-                "biometric_mode": outlet.biometric_mode,
-                "max_fallback_attempts": outlet.max_fallback_attempts,
-                "outlet_name": outlet.name,
-                "merchant_name": merchant.name,
-            },
+            "school_id": device.school_id,
+            "merchant_id": device.merchant_id,
+            "config": config,
         }
 
     async def process_heartbeat(self, heartbeat: DeviceHeartbeat) -> bool:
-        device = await self.get_by_code(heartbeat.device_code)
+        device = await self.get_by_serial(heartbeat.device_serial)
         if not device:
             return False
 
-        device.last_heartbeat_at = datetime.now(timezone.utc)
-        device.last_seen_at = datetime.now(timezone.utc)
-        device.firmware_version = heartbeat.firmware_version
-        if heartbeat.ip_address:
-            device.ip_address = heartbeat.ip_address
-        device.status = DeviceStatus.ONLINE
-
+        device.last_heartbeat = datetime.now(timezone.utc)
+        device.status = DeviceStatus.ACTIVE
         await self.db.commit()
         return True
 
     async def list_all(
-        self,
-        page: int = 1,
-        page_size: int = 20,
-        outlet_id: Optional[str] = None,
-        status: Optional[str] = None,
-        merchant_id: Optional[str] = None,
-    ) -> tuple[list[Device], int]:
+        self, school_id: Optional[str] = None, merchant_id: Optional[str] = None,
+        status: Optional[str] = None, skip: int = 0, limit: int = 50,
+    ) -> tuple:
         query = select(Device)
-        count_query = select(func.count()).select_from(Device)
+        count_query = select(func.count(Device.id))
 
+        if school_id:
+            query = query.where(Device.school_id == school_id)
+            count_query = count_query.where(Device.school_id == school_id)
         if merchant_id:
-            # Filter devices by merchant via outlet relationship
-            outlet_ids_query = select(Outlet.id).where(
-                Outlet.merchant_id == merchant_id
-            )
-            query = query.where(Device.outlet_id.in_(outlet_ids_query))
-            count_query = count_query.where(Device.outlet_id.in_(outlet_ids_query))
-
-        if outlet_id:
-            query = query.where(Device.outlet_id == outlet_id)
-            count_query = count_query.where(Device.outlet_id == outlet_id)
+            query = query.where(Device.merchant_id == merchant_id)
+            count_query = count_query.where(Device.merchant_id == merchant_id)
         if status:
             query = query.where(Device.status == status)
             count_query = count_query.where(Device.status == status)
 
-        total_result = await self.db.execute(count_query)
-        total = total_result.scalar()
+        total = (await self.db.execute(count_query)).scalar()
+        result = await self.db.execute(
+            query.offset(skip).limit(limit).order_by(Device.created_at.desc())
+        )
+        return result.scalars().all(), total
 
-        query = query.offset((page - 1) * page_size).limit(page_size)
-        result = await self.db.execute(query)
-        items = list(result.scalars().all())
-
-        return items, total
-
-    async def update(self, device_id: str, data: DeviceUpdate) -> Optional[Device]:
+    async def update(self, device_id: str, data: DeviceUpdate) -> Device:
         device = await self.get_by_id(device_id)
         if not device:
-            return None
-
+            raise NotFoundException("Device")
         update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(device, field, value)
-
+        for key, value in update_data.items():
+            setattr(device, key, value)
         await self.db.commit()
         await self.db.refresh(device)
         return device
@@ -193,35 +163,3 @@ class DeviceService:
         device.is_active = True
         await self.db.commit()
         return True
-
-    async def assign_to_outlet(
-        self, device_id: str, data: DeviceAssignOutlet, merchant_id: Optional[str] = None
-    ) -> Device:
-        device = await self.get_by_id(device_id)
-        if not device:
-            raise NotFoundException("Device not found")
-
-        # Validate outlet exists and belongs to merchant
-        outlet_result = await self.db.execute(
-            select(Outlet).where(Outlet.id == data.outlet_id)
-        )
-        outlet = outlet_result.scalar_one_or_none()
-        if not outlet:
-            raise NotFoundException("Outlet not found")
-
-        if merchant_id and outlet.merchant_id != merchant_id:
-            raise BadRequestException("Outlet does not belong to your merchant")
-
-        # If merchant_admin, verify device currently belongs to one of their outlets
-        if merchant_id:
-            current_outlet_result = await self.db.execute(
-                select(Outlet).where(Outlet.id == device.outlet_id)
-            )
-            current_outlet = current_outlet_result.scalar_one_or_none()
-            if not current_outlet or current_outlet.merchant_id != merchant_id:
-                raise BadRequestException("Device does not belong to your merchant")
-
-        device.outlet_id = data.outlet_id
-        await self.db.commit()
-        await self.db.refresh(device)
-        return device

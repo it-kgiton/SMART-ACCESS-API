@@ -1,22 +1,37 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+from decimal import Decimal
+
+
+class TransactionItemResponse(BaseModel):
+    id: str
+    product_id: Optional[str]
+    product_name: str
+    quantity: int
+    unit_price: float
+    subtotal: float
 
 
 class TransactionResponse(BaseModel):
     id: str
-    merchant_id: str
-    outlet_id: str
-    device_id: str
-    customer_id: Optional[str] = None
-    wallet_id: Optional[str] = None
-    biometric_method: str
-    fallback_from: Optional[str] = None
+    transaction_ref: str
+    type: str
+    client_id: Optional[str] = None
+    merchant_id: Optional[str] = None
+    parent_id: Optional[str] = None
+    school_id: Optional[str] = None
+    device_id: Optional[str] = None
     amount: float
+    fee_amount: float
     status: str
+    payment_method: Optional[str] = None
+    biometric_method: Optional[str] = None
     confidence_score: Optional[float] = None
-    request_reference: str
+    offline_flag: bool = False
     rejection_reason: Optional[str] = None
+    reference_transaction_id: Optional[str] = None
+    items: List[TransactionItemResponse] = []
     created_at: datetime
     completed_at: Optional[datetime] = None
 
@@ -24,39 +39,49 @@ class TransactionResponse(BaseModel):
 
 
 class TransactionListResponse(BaseModel):
-    items: list[TransactionResponse]
+    success: bool = True
+    data: List[TransactionResponse]
     total: int
-    page: int
-    page_size: int
 
 
-class PaymentRequest(BaseModel):
-    device_code: str
+class PurchaseItemRequest(BaseModel):
+    product_id: Optional[str] = None
+    product_name: str
+    quantity: int = 1
+    unit_price: float
+
+
+class PurchaseRequest(BaseModel):
+    merchant_id: str
+    client_id: str
+    device_id: Optional[str] = None
+    items: List[PurchaseItemRequest]
+    biometric_method: Optional[str] = "fingerprint_face"
+
+
+class TopUpRequest(BaseModel):
+    client_id: str
+    parent_id: str
     amount: float
-    biometric_method: str  # "face" or "fingerprint"
-    request_reference: str
-    fallback_from: Optional[str] = None
+    payment_method: str = "qris"
+
+
+class RefundRequest(BaseModel):
+    transaction_id: str
+    reason: Optional[str] = None
 
 
 class PaymentResponse(BaseModel):
-    transaction_id: str
-    status: str
-    customer_name: Optional[str] = None
-    amount: float
-    balance_after: Optional[float] = None
-    biometric_method: str
-    rejection_reason: Optional[str] = None
-    confidence_score: Optional[float] = None
+    success: bool = True
+    data: dict
 
 
 class TransactionStatsResponse(BaseModel):
     total_transactions: int
-    total_approved: int
-    total_rejected: int
+    total_success: int
     total_failed: int
+    total_refunded: int
     total_amount: float
-    face_count: int
-    fingerprint_count: int
-    fallback_count: int
+    total_fee: float
     period_start: datetime
     period_end: datetime

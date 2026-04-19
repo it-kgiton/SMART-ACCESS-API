@@ -15,14 +15,14 @@ from app.dependencies import get_current_user
 router = APIRouter()
 
 
-@router.get("/{customer_id}", response_model=WalletResponse)
+@router.get("/{client_id}", response_model=WalletResponse)
 async def get_wallet(
-    customer_id: str,
+    client_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     service = WalletService(db)
-    wallet = await service.get_by_customer_id(customer_id)
+    wallet = await service.get_by_client_id(client_id)
     if not wallet:
         raise NotFoundException("Wallet")
     return wallet
@@ -35,20 +35,20 @@ async def topup_wallet(
     current_user: dict = Depends(get_current_user),
 ):
     service = WalletService(db)
-    wallet = await service.topup(data.customer_id, data.amount, data.description)
+    wallet = await service.topup(data.client_id, data.amount, data.description)
     return wallet
 
 
-@router.get("/{customer_id}/ledger", response_model=WalletLedgerListResponse)
+@router.get("/{client_id}/ledger", response_model=WalletLedgerListResponse)
 async def get_wallet_ledger(
-    customer_id: str,
+    client_id: str,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     service = WalletService(db)
-    wallet = await service.get_by_customer_id(customer_id)
+    wallet = await service.get_by_client_id(client_id)
     if not wallet:
         raise NotFoundException("Wallet")
     items, total = await service.get_ledger(wallet.id, page=page, page_size=page_size)

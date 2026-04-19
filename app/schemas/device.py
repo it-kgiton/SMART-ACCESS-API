@@ -1,46 +1,39 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
 class DeviceCreate(BaseModel):
-    outlet_id: str
-    device_code: str
-    license_key: str
+    device_serial: str
+    school_id: Optional[str] = None
+    merchant_id: Optional[str] = None
+    device_type: Optional[str] = "combo_device"
     name: Optional[str] = None
-    firmware_version: Optional[str] = None
-    hardware_version: Optional[str] = None
-    mac_address: Optional[str] = None
+    license_key: Optional[str] = None
 
 
 class DeviceUpdate(BaseModel):
-    outlet_id: Optional[str] = None
     name: Optional[str] = None
+    school_id: Optional[str] = None
+    merchant_id: Optional[str] = None
+    device_type: Optional[str] = None
     firmware_version: Optional[str] = None
-    is_active: Optional[bool] = None
-    status: Optional[str] = None
-
-
-class DeviceAssignOutlet(BaseModel):
-    outlet_id: str
+    sdk_version: Optional[str] = None
 
 
 class DeviceResponse(BaseModel):
     id: str
-    outlet_id: str
-    device_code: str
-    name: Optional[str] = None
-    license_key: str
-    device_serial_number: Optional[str] = None
-    device_model: Optional[str] = None
-    firmware_version: Optional[str] = None
-    hardware_version: Optional[str] = None
-    mac_address: Optional[str] = None
-    ip_address: Optional[str] = None
+    device_serial: str
+    school_id: Optional[str]
+    merchant_id: Optional[str]
+    device_type: str
+    name: Optional[str]
+    license_key: Optional[str]
+    firmware_version: Optional[str]
+    sdk_version: Optional[str]
     status: str
     is_active: bool
-    last_seen_at: Optional[datetime] = None
-    last_heartbeat_at: Optional[datetime] = None
+    last_heartbeat: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 
@@ -48,38 +41,20 @@ class DeviceResponse(BaseModel):
 
 
 class DeviceListResponse(BaseModel):
-    items: list[DeviceResponse]
+    success: bool = True
+    data: List[DeviceResponse]
     total: int
-    page: int
-    page_size: int
 
 
 class DeviceHeartbeat(BaseModel):
-    device_code: str
-    firmware_version: str
-    ip_address: Optional[str] = None
-    free_heap: Optional[int] = None
-    wifi_rssi: Optional[int] = None
-    uptime_seconds: Optional[int] = None
+    device_serial: str
 
 
 class DeviceAuthRequest(BaseModel):
-    device_code: str
-    mac_address: str
+    device_serial: str
+    license_key: str
 
 
 class DeviceAuthResponse(BaseModel):
-    token: str
-    device_id: str
-    outlet_id: str
-    merchant_id: str
-    biometric_mode: str
-    config: Optional[dict] = None
-
-
-class DeviceConfigResponse(BaseModel):
-    biometric_mode: str
-    max_fallback_attempts: int
-    outlet_name: str
-    merchant_name: str
-    firmware_update_available: Optional[str] = None
+    success: bool = True
+    data: dict

@@ -1,12 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 
 
 class WalletResponse(BaseModel):
     id: str
-    customer_id: str
+    client_id: str
     balance: float
     status: str
     created_at: datetime
@@ -16,9 +16,10 @@ class WalletResponse(BaseModel):
 
 
 class WalletTopUp(BaseModel):
-    customer_id: str
+    client_id: str
     amount: float
     description: Optional[str] = None
+    payment_method: Optional[str] = "qris"
 
 
 class WalletLedgerResponse(BaseModel):
@@ -36,7 +37,6 @@ class WalletLedgerResponse(BaseModel):
 
 
 class WalletLedgerListResponse(BaseModel):
-    items: list[WalletLedgerResponse]
+    success: bool = True
+    data: List[WalletLedgerResponse]
     total: int
-    page: int
-    page_size: int

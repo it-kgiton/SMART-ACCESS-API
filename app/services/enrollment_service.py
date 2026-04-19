@@ -1,10 +1,11 @@
 import numpy as np
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
-from app.models.customer import Customer
+from app.models.client import Client
 from app.models.biometric import FaceCredential, FingerprintCredential, CredentialStatus
 from app.services.biometric_engine import biometric_engine
 from app.core.exceptions import BadRequestException, NotFoundException
@@ -16,11 +17,11 @@ class EnrollmentService:
 
     async def enroll_face(
         self,
-        customer_id: str,
+        client_id: str,
         image_bytes: bytes,
         enrolled_by: Optional[str] = None,
     ) -> FaceCredential:
-        customer = await self._get_customer(customer_id)
+        client = await self._get_client(client_id)
 
         if not biometric_engine.is_ready:
             raise BadRequestException("Biometric engine is not initialized. Please restart the server.")
@@ -31,9 +32,8 @@ class EnrollmentService:
 
         quality = biometric_engine.assess_face_quality(image_bytes)
 
-        # Check if credential exists
         result = await self.db.execute(
-            select(FaceCredential).where(FaceCredential.customer_id == customer_id)
+            select(FaceCredential).where(FaceCredential.client_id == client_id)
         )
         existing = result.scalar_one_or_none()
 
@@ -46,31 +46,37 @@ class EnrollmentService:
             existing.enrolled_by = enrolled_by
             await self.db.commit()
             await self.db.refresh(existing)
-            return existing
+            credential = existing
+        else:
+            credential = FaceCredential(
+                client_id=client_id,
+                embedding=embedding_bytes,
+                quality_score=quality,
+                enrolled_by=enrolled_by,
+            )
+            self.db.add(credential)
+            await self.db.commit()
+            await self.db.refresh(credential)
 
-        credential = FaceCredential(
-            customer_id=customer_id,
-            embedding=embedding_bytes,
-            quality_score=quality,
-            enrolled_by=enrolled_by,
-        )
-        self.db.add(credential)
+        # Update client biometric status
+        client.biometric_enrolled = True
+        client.biometric_last_updated = datetime.now(timezone.utc)
         await self.db.commit()
-        await self.db.refresh(credential)
+
         return credential
 
     async def enroll_fingerprint(
         self,
-        customer_id: str,
+        client_id: str,
         template_data: bytes,
         finger_index: int = 1,
         enrolled_by: Optional[str] = None,
     ) -> FingerprintCredential:
-        customer = await self._get_customer(customer_id)
+        client = await self._get_client(client_id)
 
         result = await self.db.execute(
             select(FingerprintCredential).where(
-                FingerprintCredential.customer_id == customer_id
+                FingerprintCredential.client_id == client_id
             )
         )
         existing = result.scalar_one_or_none()
@@ -78,28 +84,33 @@ class EnrollmentService:
         if existing:
             existing.template_data = template_data
             existing.finger_index = finger_index
-            existing.quality_score = 1.0  # Placeholder
+            existing.quality_score = 1.0
             existing.status = CredentialStatus.ACTIVE
             existing.enrolled_by = enrolled_by
             await self.db.commit()
             await self.db.refresh(existing)
-            return existing
+            credential = existing
+        else:
+            credential = FingerprintCredential(
+                client_id=client_id,
+                template_data=template_data,
+                finger_index=finger_index,
+                quality_score=1.0,
+                enrolled_by=enrolled_by,
+            )
+            self.db.add(credential)
+            await self.db.commit()
+            await self.db.refresh(credential)
 
-        credential = FingerprintCredential(
-            customer_id=customer_id,
-            template_data=template_data,
-            finger_index=finger_index,
-            quality_score=1.0,
-            enrolled_by=enrolled_by,
-        )
-        self.db.add(credential)
+        client.biometric_enrolled = True
+        client.biometric_last_updated = datetime.now(timezone.utc)
         await self.db.commit()
-        await self.db.refresh(credential)
+
         return credential
 
-    async def revoke_face(self, customer_id: str) -> bool:
+    async def revoke_face(self, client_id: str) -> bool:
         result = await self.db.execute(
-            select(FaceCredential).where(FaceCredential.customer_id == customer_id)
+            select(FaceCredential).where(FaceCredential.client_id == client_id)
         )
         credential = result.scalar_one_or_none()
         if not credential:
@@ -108,10 +119,10 @@ class EnrollmentService:
         await self.db.commit()
         return True
 
-    async def revoke_fingerprint(self, customer_id: str) -> bool:
+    async def revoke_fingerprint(self, client_id: str) -> bool:
         result = await self.db.execute(
             select(FingerprintCredential).where(
-                FingerprintCredential.customer_id == customer_id
+                FingerprintCredential.client_id == client_id
             )
         )
         credential = result.scalar_one_or_none()
@@ -121,24 +132,24 @@ class EnrollmentService:
         await self.db.commit()
         return True
 
-    async def get_enrollment_status(self, customer_id: str) -> dict:
-        customer = await self._get_customer(customer_id)
+    async def get_enrollment_status(self, client_id: str) -> dict:
+        client = await self._get_client(client_id)
 
         face_result = await self.db.execute(
-            select(FaceCredential).where(FaceCredential.customer_id == customer_id)
+            select(FaceCredential).where(FaceCredential.client_id == client_id)
         )
         face = face_result.scalar_one_or_none()
 
         fp_result = await self.db.execute(
             select(FingerprintCredential).where(
-                FingerprintCredential.customer_id == customer_id
+                FingerprintCredential.client_id == client_id
             )
         )
         fp = fp_result.scalar_one_or_none()
 
         return {
-            "customer_id": customer.id,
-            "customer_name": customer.name,
+            "client_id": client.id,
+            "client_name": client.name,
             "has_face": face is not None,
             "face_status": face.status if face else None,
             "face_quality": face.quality_score if face else None,
@@ -147,53 +158,46 @@ class EnrollmentService:
             "fingerprint_quality": fp.quality_score if fp else None,
         }
 
-    async def _get_customer(self, customer_id: str) -> Customer:
+    async def _get_client(self, client_id: str) -> Client:
         result = await self.db.execute(
-            select(Customer).where(Customer.id == customer_id)
+            select(Client).where(Client.id == client_id)
         )
-        customer = result.scalar_one_or_none()
-        if not customer:
-            raise NotFoundException("Customer")
-        return customer
+        client = result.scalar_one_or_none()
+        if not client:
+            raise NotFoundException("Client")
+        return client
 
-    async def verify_face(self, customer_id: str, image_bytes: bytes) -> dict:
-        """Verify a face image against stored enrollment for a given customer."""
+    async def verify_face(self, client_id: str, image_bytes: bytes) -> dict:
         from app.config import settings
 
         if not biometric_engine.is_ready:
-            raise BadRequestException("Biometric engine is not initialized. Please restart the server.")
+            raise BadRequestException("Biometric engine is not initialized.")
 
-        customer = await self._get_customer(customer_id)
+        client = await self._get_client(client_id)
 
-        # Get stored credential
         result = await self.db.execute(
             select(FaceCredential).where(
-                FaceCredential.customer_id == customer_id,
+                FaceCredential.client_id == client_id,
                 FaceCredential.status == CredentialStatus.ACTIVE,
             )
         )
         credential = result.scalar_one_or_none()
         if not credential:
-            raise BadRequestException("Customer has no active face credential")
+            raise BadRequestException("Client has no active face credential")
 
-        # Extract full face data from submitted image
         face_data = biometric_engine.extract_face_data(image_bytes)
         if face_data is None:
-            raise BadRequestException("No face detected in the submitted image. Ensure good lighting and face the camera directly.")
+            raise BadRequestException("No face detected in the submitted image.")
 
         embedding = face_data["embedding"]
-
-        # Assess quality
         submitted_quality = biometric_engine.assess_face_quality(image_bytes)
 
-        # Compare with stored embedding
         stored_embedding = np.frombuffer(credential.embedding, dtype=np.float32)
         similarity = biometric_engine.compare_face_embeddings(embedding, stored_embedding)
 
         threshold = settings.FACE_SIMILARITY_THRESHOLD
         matched = similarity >= threshold
 
-        # Confidence labels tuned for ArcFace cosine similarity
         if similarity >= 0.70:
             confidence_label = "Very High"
         elif similarity >= 0.60:
@@ -209,8 +213,8 @@ class EnrollmentService:
             "matched": matched,
             "similarity": round(float(similarity), 4),
             "threshold": threshold,
-            "customer_id": customer.id,
-            "customer_name": customer.name,
+            "client_id": client.id,
+            "client_name": client.name,
             "submitted_quality": round(float(submitted_quality), 4),
             "enrolled_quality": credential.quality_score,
             "confidence_label": confidence_label,

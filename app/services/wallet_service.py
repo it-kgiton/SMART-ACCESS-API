@@ -11,9 +11,9 @@ class WalletService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_by_customer_id(self, customer_id: str) -> Optional[Wallet]:
+    async def get_by_client_id(self, client_id: str) -> Optional[Wallet]:
         result = await self.db.execute(
-            select(Wallet).where(Wallet.customer_id == customer_id)
+            select(Wallet).where(Wallet.client_id == client_id)
         )
         return result.scalar_one_or_none()
 
@@ -24,12 +24,12 @@ class WalletService:
         return result.scalar_one_or_none()
 
     async def topup(
-        self, customer_id: str, amount: float, description: Optional[str] = None
+        self, client_id: str, amount: float, description: Optional[str] = None
     ) -> Wallet:
         if amount <= 0:
             raise BadRequestException("Top-up amount must be positive")
 
-        wallet = await self.get_by_customer_id(customer_id)
+        wallet = await self.get_by_client_id(client_id)
         if not wallet:
             raise BadRequestException("Wallet not found")
         if wallet.status != WalletStatus.ACTIVE:

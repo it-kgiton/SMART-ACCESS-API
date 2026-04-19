@@ -26,10 +26,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_device_token(device_id: str, device_code: str) -> str:
+def create_device_token(device_id: str, device_serial: str) -> str:
     data = {
         "sub": device_id,
-        "device_code": device_code,
+        "device_serial": device_serial,
         "type": "device",
     }
     expire_delta = timedelta(days=settings.DEVICE_TOKEN_EXPIRE_DAYS)

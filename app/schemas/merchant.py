@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel
+from typing import Optional, List
 from datetime import datetime
+from decimal import Decimal
 
 
 class MerchantAdminAccount(BaseModel):
@@ -10,34 +11,39 @@ class MerchantAdminAccount(BaseModel):
 
 
 class MerchantCreate(BaseModel):
-    name: str
-    code: str
-    description: Optional[str] = None
-    address: Optional[str] = None
+    school_id: str
+    business_name: str
+    business_type: Optional[str] = "kantin"
+    owner_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
-    admin: MerchantAdminAccount
+    address: Optional[str] = None
+    admin: Optional[MerchantAdminAccount] = None
 
 
 class MerchantUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    address: Optional[str] = None
+    business_name: Optional[str] = None
+    business_type: Optional[str] = None
+    owner_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
-    is_active: Optional[bool] = None
+    address: Optional[str] = None
+    status: Optional[str] = None
 
 
 class MerchantResponse(BaseModel):
     id: str
-    name: str
-    code: str
-    description: Optional[str] = None
-    address: Optional[str] = None
+    user_id: Optional[str] = None
+    school_id: str
+    business_name: str
+    business_type: str
+    owner_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    address: Optional[str] = None
     logo_url: Optional[str] = None
-    is_active: bool
+    balance: Decimal
+    status: str
     created_at: datetime
     updated_at: datetime
 
@@ -45,12 +51,11 @@ class MerchantResponse(BaseModel):
 
 
 class MerchantCreateResponse(BaseModel):
-    merchant: MerchantResponse
-    admin: dict
+    success: bool = True
+    data: dict
 
 
 class MerchantListResponse(BaseModel):
-    items: list[MerchantResponse]
+    success: bool = True
+    data: List[MerchantResponse]
     total: int
-    page: int
-    page_size: int

@@ -8,12 +8,18 @@ import enum
 from app.core.database import Base
 
 
+class DeviceType(str, enum.Enum):
+    FINGERPRINT_READER = "fingerprint_reader"
+    FACE_CAMERA = "face_camera"
+    COMBO_DEVICE = "combo_device"
+
+
 class DeviceStatus(str, enum.Enum):
-    REGISTERED = "registered"
-    PROVISIONED = "provisioned"
-    ONLINE = "online"
+    ACTIVE = "active"
     OFFLINE = "offline"
     MAINTENANCE = "maintenance"
+    RETIRED = "retired"
+    REGISTERED = "registered"
     BLOCKED = "blocked"
 
 
@@ -23,24 +29,29 @@ class Device(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    outlet_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("outlets.id"), nullable=False
+    device_serial: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    school_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("schools.id"), nullable=True
     )
-    device_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    merchant_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("merchants.id"), nullable=True
+    )
+    device_type: Mapped[str] = mapped_column(
+        SAEnum(DeviceType, values_callable=lambda x: [e.value for e in x]),
+        default=DeviceType.COMBO_DEVICE,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=True)
-    license_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    device_serial_number: Mapped[str] = mapped_column(String(100), nullable=True)
-    device_model: Mapped[str] = mapped_column(String(100), nullable=True)
+    license_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=True)
     firmware_version: Mapped[str] = mapped_column(String(50), nullable=True)
-    hardware_version: Mapped[str] = mapped_column(String(50), nullable=True)
+    sdk_version: Mapped[str] = mapped_column(String(50), nullable=True)
     mac_address: Mapped[str] = mapped_column(String(17), nullable=True)
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(DeviceStatus), default=DeviceStatus.REGISTERED
+        SAEnum(DeviceStatus, values_callable=lambda x: [e.value for e in x]),
+        default=DeviceStatus.REGISTERED,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_heartbeat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_heartbeat: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     config_json: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -50,5 +61,3 @@ class Device(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
-
-    outlet = relationship("Outlet", back_populates="devices")

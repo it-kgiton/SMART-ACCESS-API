@@ -20,14 +20,14 @@ class FaceCredential(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    customer_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("customers.id"), unique=True, nullable=False
+    client_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("clients.id"), unique=True, nullable=False
     )
     embedding: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     embedding_version: Mapped[str] = mapped_column(String(50), default="arcface_r100")
     quality_score: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(CredentialStatus), default=CredentialStatus.ACTIVE
+        SAEnum(CredentialStatus, values_callable=lambda x: [e.value for e in x]), default=CredentialStatus.ACTIVE
     )
     enrolled_by: Mapped[str] = mapped_column(String(36), nullable=True)
     enrolled_at: Mapped[datetime] = mapped_column(
@@ -39,7 +39,7 @@ class FaceCredential(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    customer = relationship("Customer", back_populates="face_credential")
+    client = relationship("Client", back_populates="face_credential")
 
 
 class FingerprintCredential(Base):
@@ -48,14 +48,14 @@ class FingerprintCredential(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    customer_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("customers.id"), unique=True, nullable=False
+    client_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("clients.id"), unique=True, nullable=False
     )
     template_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     finger_index: Mapped[int] = mapped_column(default=1)
     quality_score: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(CredentialStatus), default=CredentialStatus.ACTIVE
+        SAEnum(CredentialStatus, values_callable=lambda x: [e.value for e in x]), default=CredentialStatus.ACTIVE
     )
     enrolled_by: Mapped[str] = mapped_column(String(36), nullable=True)
     enrolled_at: Mapped[datetime] = mapped_column(
@@ -67,4 +67,4 @@ class FingerprintCredential(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    customer = relationship("Customer", back_populates="fingerprint_credential")
+    client = relationship("Client", back_populates="fingerprint_credential")

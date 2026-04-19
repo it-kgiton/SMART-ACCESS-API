@@ -1,87 +1,102 @@
+from fastapi import APIRouter, Depends
 from typing import Optional
-from datetime import datetime
-from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.exceptions import NotFoundException
 from app.schemas.transaction import (
+    PurchaseRequest,
+    TopUpRequest,
+    RefundRequest,
     TransactionResponse,
-    TransactionListResponse,
     TransactionStatsResponse,
 )
 from app.services.transaction_service import TransactionService
-from app.dependencies import get_current_user, is_outlet_manager, get_user_outlet_id, is_merchant_admin, get_user_merchant_id
+from app.dependencies import get_current_user, require_any_role
 
 router = APIRouter()
 
 
-@router.get("", response_model=TransactionListResponse)
+@router.post("/purchase")
+async def create_purchase(
+    data: PurchaseRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
+):
+    service = TransactionService(db)
+    transaction = await service.purchase(data)
+    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
+
+
+@router.post("/topup")
+async def create_topup(
+    data: TopUpRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "parent")),
+):
+    service = TransactionService(db)
+    transaction = await service.topup(data)
+    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
+
+
+@router.post("/refund")
+async def create_refund(
+    data: RefundRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops")),
+):
+    service = TransactionService(db)
+    transaction = await service.refund(data)
+    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
+
+
+@router.get("/")
 async def list_transactions(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    merchant_id: Optional[str] = None,
-    outlet_id: Optional[str] = None,
-    device_id: Optional[str] = None,
-    status: Optional[str] = None,
-    biometric_method: Optional[str] = None,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
+    school_id: Optional[str] = None, client_id: Optional[str] = None,
+    merchant_id: Optional[str] = None, type: Optional[str] = None,
+    status: Optional[str] = None, date_from: Optional[str] = None,
+    date_to: Optional[str] = None, skip: int = 0, limit: int = 50,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    # Outlet manager is scoped to their own outlet
-    if is_outlet_manager(current_user):
-        outlet_id = get_user_outlet_id(current_user)
-        merchant_id = get_user_merchant_id(current_user)
-    elif is_merchant_admin(current_user):
-        merchant_id = get_user_merchant_id(current_user)
-
     service = TransactionService(db)
-    items, total = await service.list_transactions(
-        page=page,
-        page_size=page_size,
-        merchant_id=merchant_id,
-        outlet_id=outlet_id,
-        device_id=device_id,
-        status=status,
-        biometric_method=biometric_method,
-        date_from=date_from,
-        date_to=date_to,
+    transactions, total = await service.list_transactions(
+        school_id=school_id, client_id=client_id, merchant_id=merchant_id,
+        type=type, status=status, date_from=date_from, date_to=date_to,
+        skip=skip, limit=limit,
     )
-    return TransactionListResponse(
-        items=[TransactionResponse.model_validate(t) for t in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return {
+        "success": True,
+        "data": [TransactionResponse.model_validate(t) for t in transactions],
+        "total": total,
+    }
 
 
 @router.get("/stats", response_model=TransactionStatsResponse)
 async def get_transaction_stats(
+    school_id: Optional[str] = None,
     merchant_id: Optional[str] = None,
-    outlet_id: Optional[str] = None,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
+):
+    service = TransactionService(db)
+    stats = await service.get_stats(
+        school_id=school_id, merchant_id=merchant_id,
+        date_from=date_from, date_to=date_to,
+    )
+    return stats
+
+
+@router.get("/{transaction_id}", response_model=TransactionResponse)
+async def get_transaction(
+    transaction_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    # Outlet manager is scoped to their own outlet
-    if is_outlet_manager(current_user):
-        outlet_id = get_user_outlet_id(current_user)
-        merchant_id = get_user_merchant_id(current_user)
-    elif is_merchant_admin(current_user):
-        merchant_id = get_user_merchant_id(current_user)
-
     service = TransactionService(db)
-    stats = await service.get_stats(
-        merchant_id=merchant_id,
-        outlet_id=outlet_id,
-        date_from=date_from,
-        date_to=date_to,
-    )
-    now = datetime.utcnow()
-    return TransactionStatsResponse(
-        **stats,
-        period_start=date_from or datetime(2024, 1, 1),
-        period_end=date_to or now,
-    )
+    transaction = await service.get_by_id(transaction_id)
+    if not transaction:
+        raise NotFoundException("Transaction")
+    return transaction

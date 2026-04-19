@@ -5,7 +5,7 @@ from datetime import datetime
 
 class FaceEnrollmentResponse(BaseModel):
     credential_id: str
-    customer_id: str
+    client_id: str
     quality_score: Optional[float] = None
     status: str
     enrolled_at: datetime
@@ -13,7 +13,7 @@ class FaceEnrollmentResponse(BaseModel):
 
 class FingerprintEnrollmentResponse(BaseModel):
     credential_id: str
-    customer_id: str
+    client_id: str
     finger_index: int
     quality_score: Optional[float] = None
     status: str
@@ -21,8 +21,8 @@ class FingerprintEnrollmentResponse(BaseModel):
 
 
 class EnrollmentStatusResponse(BaseModel):
-    customer_id: str
-    customer_name: str
+    client_id: str
+    client_name: str
     has_face: bool
     face_status: Optional[str] = None
     face_quality: Optional[float] = None
@@ -35,8 +35,8 @@ class FaceVerifyResponse(BaseModel):
     matched: bool
     similarity: float
     threshold: float
-    customer_id: str
-    customer_name: str
+    client_id: str
+    client_name: str
     submitted_quality: float
     enrolled_quality: Optional[float] = None
     confidence_label: str

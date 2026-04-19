@@ -28,12 +28,12 @@ class Wallet(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    customer_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("customers.id"), unique=True, nullable=False
+    client_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("clients.id"), unique=True, nullable=False
     )
     balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"))
     status: Mapped[str] = mapped_column(
-        SAEnum(WalletStatus), default=WalletStatus.ACTIVE
+        SAEnum(WalletStatus, values_callable=lambda x: [e.value for e in x]), default=WalletStatus.ACTIVE
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -44,7 +44,7 @@ class Wallet(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    customer = relationship("Customer", back_populates="wallet")
+    client = relationship("Client", back_populates="wallet")
     ledger_entries = relationship("WalletLedger", back_populates="wallet", lazy="selectin", cascade="all, delete-orphan")
 
 
@@ -57,7 +57,7 @@ class WalletLedger(Base):
     wallet_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("wallets.id"), nullable=False
     )
-    type: Mapped[str] = mapped_column(SAEnum(LedgerType), nullable=False)
+    type: Mapped[str] = mapped_column(SAEnum(LedgerType, values_callable=lambda x: [e.value for e in x]), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     balance_before: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     balance_after: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)

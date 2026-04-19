@@ -1,54 +1,54 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.transaction import PaymentResponse
+from app.schemas.transaction import TransactionResponse
 from app.services.transaction_service import TransactionService
 from app.dependencies import get_current_device
 
 router = APIRouter()
 
 
-@router.post("/face-payment", response_model=PaymentResponse)
+@router.post("/face-payment")
 async def face_payment(
-    image: UploadFile = File(...),
+    device_serial: str = Form(...),
+    merchant_id: str = Form(...),
     amount: float = Form(...),
-    request_reference: str = Form(...),
-    fallback_from: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    items: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     device: dict = Depends(get_current_device),
 ):
-    """Device-facing endpoint for face-based payment."""
-    image_bytes = await image.read()
     service = TransactionService(db)
-    result = await service.process_face_payment(
-        device_id=device["sub"],
+    image_bytes = await file.read()
+    transaction = await service.process_face_payment(
+        device_serial=device_serial,
+        merchant_id=merchant_id,
+        amount=amount,
         image_bytes=image_bytes,
-        amount=amount,
-        request_reference=request_reference,
-        fallback_from=fallback_from,
+        items_json=items,
     )
-    return result
+    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
 
 
-@router.post("/fingerprint-payment", response_model=PaymentResponse)
+@router.post("/fingerprint-payment")
 async def fingerprint_payment(
-    template: UploadFile = File(...),
+    device_serial: str = Form(...),
+    merchant_id: str = Form(...),
     amount: float = Form(...),
-    request_reference: str = Form(...),
-    fallback_from: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    items: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     device: dict = Depends(get_current_device),
 ):
-    """Device-facing endpoint for fingerprint-based payment."""
-    template_data = await template.read()
     service = TransactionService(db)
-    result = await service.process_fingerprint_payment(
-        device_id=device["sub"],
-        fingerprint_data=template_data,
+    template_bytes = await file.read()
+    transaction = await service.process_fingerprint_payment(
+        device_serial=device_serial,
+        merchant_id=merchant_id,
         amount=amount,
-        request_reference=request_reference,
-        fallback_from=fallback_from,
+        template_bytes=template_bytes,
+        items_json=items,
     )
-    return result
+    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
