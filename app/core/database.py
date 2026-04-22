@@ -12,7 +12,7 @@ _connect_args: dict = {"statement_cache_size": 0}
 
 # Add SSL + anonymous prepared statements for hosted Postgres (Railway public proxy, etc.)
 # Skip for private/local network hosts (no PgBouncer in path)
-_no_ssl_hosts = ("localhost", "127.0.0.1", "host.docker.internal", "railway.internal")
+_no_ssl_hosts = ("localhost", "127.0.0.1", "host.docker.internal", "railway.internal", "@db:", "@db/")
 if not any(h in settings.DATABASE_URL for h in _no_ssl_hosts):
     _connect_args["ssl"] = "require"
     _connect_args["prepared_statement_name_func"] = lambda: ""

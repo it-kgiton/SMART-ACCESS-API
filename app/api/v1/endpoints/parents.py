@@ -38,6 +38,18 @@ async def list_parents(
     }
 
 
+@router.get("/me", response_model=ParentResponse)
+async def get_my_parent(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("parent")),
+):
+    service = ParentService(db)
+    parent = await service.get_by_user_id(current_user["sub"])
+    if not parent:
+        raise NotFoundException("Parent")
+    return parent
+
+
 @router.get("/{parent_id}", response_model=ParentResponse)
 async def get_parent(
     parent_id: str,

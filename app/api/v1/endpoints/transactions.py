@@ -93,7 +93,7 @@ async def get_transaction_stats(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant", "parent")),
 ):
     service = TransactionService(db)
     stats = await service.get_stats(

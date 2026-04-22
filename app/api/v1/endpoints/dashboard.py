@@ -15,7 +15,7 @@ router = APIRouter()
 async def get_dashboard_stats(
     school_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops")),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant", "parent")),
 ):
     service = DashboardService(db)
     stats = await service.get_stats(school_id=school_id)
