@@ -11,8 +11,8 @@ _connect_args: dict = {
     "ssl": "require",
 }
 
-# For local dev (plain localhost URLs), skip SSL
-if any(h in settings.DATABASE_URL for h in ("localhost", "127.0.0.1", "host.docker.internal")):
+# For local dev and Railway internal network, skip SSL
+if any(h in settings.DATABASE_URL for h in ("localhost", "127.0.0.1", "host.docker.internal", "railway.internal")):
     _connect_args.pop("ssl")
 
 engine = create_async_engine(
