@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
 
-    # Server
+    # Server — Railway injects PORT at runtime; fallback to 8000 for local
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
