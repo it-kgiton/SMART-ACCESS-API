@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from loguru import logger
+import traceback
 
 from app.config import settings
 from app.core.database import engine, Base
@@ -49,6 +51,16 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 # WebSocket routes at root level (ESP32 connects to /ws/device/{license_key})
 app.include_router(ws_router, tags=["WebSocket"])
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
+    logger.error(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/health")

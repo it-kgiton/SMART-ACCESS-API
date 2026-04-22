@@ -1,3 +1,4 @@
+import json
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import List
@@ -49,8 +50,27 @@ class Settings(BaseSettings):
     FIRMWARE_STORAGE_BUCKET: str = "firmware"
     BIOMETRIC_STORAGE_BUCKET: str = "biometric-assets"
 
-    # CORS
-    CORS_ORIGINS: List[str] = ["*"]  # Allow all for dev; restrict in production
+    # CORS — Railway: set as comma-separated or JSON array
+    # e.g. "https://app.vercel.app" or "[\"https://app.vercel.app\"]"
+    CORS_ORIGINS: List[str] = ["*"]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(i).strip() for i in parsed if str(i).strip()]
+                except (ValueError, TypeError):
+                    pass
+            # Comma-separated or single URL
+            return [u.strip() for u in v.split(",") if u.strip()]
+        if isinstance(v, list):
+            return v
+        return ["*"]
 
     # KGiTON API Integration
     KGITON_API_URL: str = ""
