@@ -3,12 +3,17 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-# Supabase uses PgBouncer (transaction pooling) which doesn't support
-# asyncpg prepared statements. Disable the cache + require SSL.
-_connect_args = {}
-if "supabase.co" in settings.DATABASE_URL:
-    _connect_args["ssl"] = "require"
-    _connect_args["statement_cache_size"] = 0
+# statement_cache_size=0 — required for Supabase/PgBouncer transaction pooling.
+# Safe for all environments (minor perf tradeoff, prevents DuplicatePreparedStatementError).
+# ssl=require — Supabase enforces SSL; harmless default for other hosted Postgres.
+_connect_args: dict = {
+    "statement_cache_size": 0,
+    "ssl": "require",
+}
+
+# For local dev (plain localhost URLs), skip SSL
+if any(h in settings.DATABASE_URL for h in ("localhost", "127.0.0.1", "host.docker.internal")):
+    _connect_args.pop("ssl")
 
 engine = create_async_engine(
     settings.DATABASE_URL,
