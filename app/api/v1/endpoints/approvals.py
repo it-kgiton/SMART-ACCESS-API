@@ -24,7 +24,7 @@ async def create_approval(
     return {"success": True, "data": ApprovalResponse.model_validate(approval)}
 
 
-@router.get("/")
+@router.get("")
 async def list_approvals(
     status: Optional[str] = None,
     skip: int = 0, limit: int = 50,

@@ -22,7 +22,7 @@ async def create_merchant(
     return {"success": True, "data": result}
 
 
-@router.get("/")
+@router.get("")
 async def list_merchants(
     school_id: Optional[str] = None, search: Optional[str] = None,
     status: Optional[str] = None, skip: int = 0, limit: int = 50,

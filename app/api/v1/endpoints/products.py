@@ -22,7 +22,7 @@ async def create_product(
     return {"success": True, "data": ProductResponse.model_validate(product)}
 
 
-@router.get("/")
+@router.get("")
 async def list_products(
     merchant_id: Optional[str] = None, category: Optional[str] = None,
     available_only: bool = False, search: Optional[str] = None,

@@ -64,7 +64,7 @@ async def create_refund(
     return {"success": True, "data": TransactionResponse.model_validate(result["transaction"])}
 
 
-@router.get("/")
+@router.get("")
 async def list_transactions(
     school_id: Optional[str] = None, client_id: Optional[str] = None,
     merchant_id: Optional[str] = None, type: Optional[str] = None,

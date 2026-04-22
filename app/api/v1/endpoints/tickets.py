@@ -22,7 +22,7 @@ async def create_ticket(
     return {"success": True, "data": TicketResponse.model_validate(ticket)}
 
 
-@router.get("/")
+@router.get("")
 async def list_tickets(
     school_id: Optional[str] = None, status: Optional[str] = None,
     priority: Optional[str] = None, assigned_to: Optional[str] = None,

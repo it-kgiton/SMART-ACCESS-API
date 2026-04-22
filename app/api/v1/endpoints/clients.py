@@ -22,7 +22,7 @@ async def create_client(
     return {"success": True, "data": ClientResponse.model_validate(client)}
 
 
-@router.get("/")
+@router.get("")
 async def list_clients(
     school_id: Optional[str] = None, parent_id: Optional[str] = None,
     search: Optional[str] = None, status: Optional[str] = None,

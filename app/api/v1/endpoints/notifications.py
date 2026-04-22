@@ -9,7 +9,7 @@ from app.dependencies import get_current_user
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 async def list_notifications(
     skip: int = 0, limit: int = 50,
     db: AsyncSession = Depends(get_db),

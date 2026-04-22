@@ -29,7 +29,7 @@ async def create_device(
     return {"success": True, "data": DeviceResponse.model_validate(device)}
 
 
-@router.get("/")
+@router.get("")
 async def list_devices(
     school_id: Optional[str] = None, merchant_id: Optional[str] = None,
     status: Optional[str] = None, skip: int = 0, limit: int = 50,

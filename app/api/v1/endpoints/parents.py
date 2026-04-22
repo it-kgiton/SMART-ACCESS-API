@@ -22,7 +22,7 @@ async def create_parent(
     return {"success": True, "data": ParentResponse.model_validate(parent)}
 
 
-@router.get("/")
+@router.get("")
 async def list_parents(
     school_id: Optional[str] = None, search: Optional[str] = None,
     skip: int = 0, limit: int = 50,
