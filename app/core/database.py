@@ -5,15 +5,13 @@ from app.config import settings
 
 # statement_cache_size=0 — required for Supabase/PgBouncer transaction pooling.
 # Safe for all environments (minor perf tradeoff, prevents DuplicatePreparedStatementError).
-# ssl=require — Supabase enforces SSL; harmless default for other hosted Postgres.
-_connect_args: dict = {
-    "statement_cache_size": 0,
-    "ssl": "require",
-}
+_connect_args: dict = {"statement_cache_size": 0}
 
-# For local dev and Railway internal network, skip SSL
-if any(h in settings.DATABASE_URL for h in ("localhost", "127.0.0.1", "host.docker.internal", "railway.internal")):
-    _connect_args.pop("ssl")
+# Add SSL for hosted Postgres (Supabase, Railway public proxy, etc.)
+# Skip SSL only for private/local network hosts
+_no_ssl_hosts = ("localhost", "127.0.0.1", "host.docker.internal", "railway.internal")
+if not any(h in settings.DATABASE_URL for h in _no_ssl_hosts):
+    _connect_args["ssl"] = "require"
 
 engine = create_async_engine(
     settings.DATABASE_URL,

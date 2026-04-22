@@ -63,13 +63,15 @@ class Settings(BaseSettings):
                 try:
                     parsed = json.loads(v)
                     if isinstance(parsed, list):
-                        return [str(i).strip() for i in parsed if str(i).strip()]
+                        result = [str(i).strip() for i in parsed if str(i).strip()]
+                        return result if result else ["*"]
                 except (ValueError, TypeError):
                     pass
             # Comma-separated or single URL
-            return [u.strip() for u in v.split(",") if u.strip()]
+            result = [u.strip() for u in v.split(",") if u.strip()]
+            return result if result else ["*"]
         if isinstance(v, list):
-            return v
+            return v if v else ["*"]
         return ["*"]
 
     # KGiTON API Integration
