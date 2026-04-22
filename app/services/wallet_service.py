@@ -24,7 +24,8 @@ class WalletService:
         return result.scalar_one_or_none()
 
     async def topup(
-        self, client_id: str, amount: float, description: Optional[str] = None
+        self, client_id: str, amount: float, description: Optional[str] = None,
+        _auto_commit: bool = True,
     ) -> Wallet:
         if amount <= 0:
             raise BadRequestException("Top-up amount must be positive")
@@ -49,8 +50,11 @@ class WalletService:
         )
         self.db.add(ledger)
 
-        await self.db.commit()
-        await self.db.refresh(wallet)
+        if _auto_commit:
+            await self.db.commit()
+            await self.db.refresh(wallet)
+        else:
+            await self.db.flush()
         return wallet
 
     async def debit(
@@ -59,6 +63,7 @@ class WalletService:
         amount: float,
         reference_id: str,
         description: Optional[str] = None,
+        _auto_commit: bool = True,
     ) -> Wallet:
         wallet = await self.get_by_id(wallet_id)
         if not wallet:
@@ -84,8 +89,11 @@ class WalletService:
         )
         self.db.add(ledger)
 
-        await self.db.commit()
-        await self.db.refresh(wallet)
+        if _auto_commit:
+            await self.db.commit()
+            await self.db.refresh(wallet)
+        else:
+            await self.db.flush()
         return wallet
 
     async def refund(
@@ -94,6 +102,7 @@ class WalletService:
         amount: float,
         reference_id: str,
         description: Optional[str] = None,
+        _auto_commit: bool = True,
     ) -> Wallet:
         wallet = await self.get_by_id(wallet_id)
         if not wallet:
@@ -114,8 +123,11 @@ class WalletService:
         )
         self.db.add(ledger)
 
-        await self.db.commit()
-        await self.db.refresh(wallet)
+        if _auto_commit:
+            await self.db.commit()
+            await self.db.refresh(wallet)
+        else:
+            await self.db.flush()
         return wallet
 
     async def get_ledger(

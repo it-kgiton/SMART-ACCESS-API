@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 from datetime import datetime, timezone
 from typing import Optional
@@ -26,11 +27,16 @@ class EnrollmentService:
         if not biometric_engine.is_ready:
             raise BadRequestException("Biometric engine is not initialized. Please restart the server.")
 
-        embedding = biometric_engine.extract_face_embedding(image_bytes)
+        loop = asyncio.get_event_loop()
+        embedding = await loop.run_in_executor(
+            None, biometric_engine.extract_face_embedding, image_bytes
+        )
         if embedding is None:
             raise BadRequestException("No face detected in the image. Ensure good lighting and face the camera directly.")
 
-        quality = biometric_engine.assess_face_quality(image_bytes)
+        quality = await loop.run_in_executor(
+            None, biometric_engine.assess_face_quality, image_bytes
+        )
 
         result = await self.db.execute(
             select(FaceCredential).where(FaceCredential.client_id == client_id)

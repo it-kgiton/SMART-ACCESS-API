@@ -10,7 +10,6 @@ from app.models.merchant import Merchant
 from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceHeartbeat
 from app.core.security import create_device_token
 from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
-from app.services.kgiton_service import kgiton_service
 
 
 class DeviceService:
@@ -25,17 +24,12 @@ class DeviceService:
         if existing.scalar_one_or_none():
             raise ConflictException("Device serial already registered")
 
-        # Validate license if provided
-        if data.license_key:
-            license_info = await kgiton_service.validate_license(data.license_key)
-            if not license_info:
-                raise BadRequestException("Invalid license key")
-
-            existing_license = await self.db.execute(
-                select(Device).where(Device.license_key == data.license_key)
-            )
-            if existing_license.scalar_one_or_none():
-                raise ConflictException("License key already registered")
+        # Check duplicate license key
+        existing_license = await self.db.execute(
+            select(Device).where(Device.license_key == data.license_key)
+        )
+        if existing_license.scalar_one_or_none():
+            raise ConflictException("License key already registered")
 
         device = Device(
             device_serial=data.device_serial,

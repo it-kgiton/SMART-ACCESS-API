@@ -5,11 +5,11 @@ from datetime import datetime
 
 class DeviceCreate(BaseModel):
     device_serial: str
+    license_key: str
     school_id: Optional[str] = None
     merchant_id: Optional[str] = None
     device_type: Optional[str] = "combo_device"
     name: Optional[str] = None
-    license_key: Optional[str] = None
 
 
 class DeviceUpdate(BaseModel):

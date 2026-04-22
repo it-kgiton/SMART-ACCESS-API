@@ -91,7 +91,8 @@ class TransactionService:
         await self.db.flush()
 
         wallet = await self.wallet_service.debit(
-            wallet.id, float(total), txn.id, f"Purchase at {merchant.business_name}"
+            wallet.id, float(total), txn.id, f"Purchase at {merchant.business_name}",
+            _auto_commit=False,
         )
 
         # Credit merchant balance
@@ -131,7 +132,8 @@ class TransactionService:
         await self.db.flush()
 
         wallet = await self.wallet_service.topup(
-            client_id, amount, f"Top-up via {payment_method}"
+            client_id, amount, f"Top-up via {payment_method}",
+            _auto_commit=False,
         )
 
         await self.db.commit()
@@ -177,7 +179,8 @@ class TransactionService:
         wallet = await self.wallet_service.get_by_client_id(original_txn.client_id)
         if wallet:
             await self.wallet_service.refund(
-                wallet.id, float(original_txn.amount), refund_txn.id, "Refund"
+                wallet.id, float(original_txn.amount), refund_txn.id, "Refund",
+                _auto_commit=False,
             )
 
         # Debit merchant balance

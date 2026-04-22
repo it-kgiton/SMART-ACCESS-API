@@ -27,7 +27,7 @@ class KGiTONService:
     async def validate_license(self, license_key: str) -> Optional[dict]:
         """
         Validate a license key exists and is valid in KGiTON.
-        Returns license info or None if invalid.
+        Returns license info dict if valid, None if invalid, raises on network error.
         """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -44,8 +44,8 @@ class KGiTONService:
                 )
                 return None
         except httpx.RequestError as e:
-            logger.error(f"KGiTON API request error: {e}")
-            return None
+            logger.error(f"KGiTON API unreachable: {e}")
+            raise
 
     async def validate_license_ownership(self, license_key: str) -> Optional[dict]:
         """

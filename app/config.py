@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     BIOMETRIC_STORAGE_BUCKET: str = "biometric-assets"
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["*"]  # Allow all for dev; restrict in production
 
     # KGiTON API Integration
     KGITON_API_URL: str = ""

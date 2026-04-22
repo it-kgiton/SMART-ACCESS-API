@@ -24,8 +24,14 @@ async def create_purchase(
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
 ):
     service = TransactionService(db)
-    transaction = await service.purchase(data)
-    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
+    result = await service.purchase(
+        client_id=data.client_id,
+        merchant_id=data.merchant_id,
+        items=data.items,
+        device_id=data.device_id,
+        biometric_method=data.biometric_method,
+    )
+    return {"success": True, "data": TransactionResponse.model_validate(result["transaction"])}
 
 
 @router.post("/topup")
@@ -35,8 +41,13 @@ async def create_topup(
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "parent")),
 ):
     service = TransactionService(db)
-    transaction = await service.topup(data)
-    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
+    result = await service.topup(
+        client_id=data.client_id,
+        parent_id=data.parent_id,
+        amount=data.amount,
+        payment_method=data.payment_method,
+    )
+    return {"success": True, "data": TransactionResponse.model_validate(result["transaction"])}
 
 
 @router.post("/refund")
@@ -46,8 +57,11 @@ async def create_refund(
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops")),
 ):
     service = TransactionService(db)
-    transaction = await service.refund(data)
-    return {"success": True, "data": TransactionResponse.model_validate(transaction)}
+    result = await service.refund(
+        transaction_id=data.transaction_id,
+        reason=data.reason,
+    )
+    return {"success": True, "data": TransactionResponse.model_validate(result["transaction"])}
 
 
 @router.get("/")

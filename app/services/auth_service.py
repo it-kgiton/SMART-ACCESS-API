@@ -7,6 +7,7 @@ from app.models.user import User, UserRole
 from app.schemas.auth import UserCreate, LoginRequest
 from app.core.security import verify_password, hash_password, create_access_token
 from app.core.exceptions import BadRequestException, UnauthorizedException, NotFoundException
+from app.config import settings
 
 
 class AuthService:
@@ -72,8 +73,7 @@ class AuthService:
                 "merchant_id": user.merchant_id,
             },
             "access_token": token,
-            "refresh_token": token,
-            "expires_in": 3600,
+            "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         }
 
     async def get_user_by_id(self, user_id: str) -> Optional[User]:

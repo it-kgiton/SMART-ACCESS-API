@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.core.database import engine, Base
 from app.api.v1.router import api_router
+from app.api.v1.endpoints.ws_device import router as ws_router
 from app.services.biometric_engine import biometric_engine
 
 
@@ -31,12 +32,15 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix=settings.API_PREFIX)
+
+# WebSocket routes at root level (ESP32 connects to /ws/device/{license_key})
+app.include_router(ws_router, tags=["WebSocket"])
 
 
 @app.get("/health")
