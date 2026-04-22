@@ -71,7 +71,8 @@ async def health_check():
             async with engine.connect() as conn:
                 await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
             db_ok = True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Health check DB probe failed: {e}")
             db_ok = False
 
     return {

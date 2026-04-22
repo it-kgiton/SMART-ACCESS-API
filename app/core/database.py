@@ -18,9 +18,9 @@ if any(h in settings.DATABASE_URL for h in ("localhost", "127.0.0.1", "host.dock
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_pre_ping=False,  # pre_ping uses prepared statements; disabled for PgBouncer
+    pool_size=5,
+    max_overflow=5,
     connect_args=_connect_args,
 )
 
