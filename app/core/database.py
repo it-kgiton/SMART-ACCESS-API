@@ -3,11 +3,12 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-# Supabase requires SSL. asyncpg accepts ssl via connect_args.
-# Works for both the direct connection and session pooler.
+# Supabase uses PgBouncer (transaction pooling) which doesn't support
+# asyncpg prepared statements. Disable the cache + require SSL.
 _connect_args = {}
 if "supabase.co" in settings.DATABASE_URL:
     _connect_args["ssl"] = "require"
+    _connect_args["statement_cache_size"] = 0
 
 engine = create_async_engine(
     settings.DATABASE_URL,

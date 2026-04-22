@@ -56,6 +56,8 @@ class BiometricEngine:
     def extract_face_embedding(self, image_bytes: bytes) -> Optional[np.ndarray]:
         """Extract 512-dim ArcFace embedding from the best face in the image.
         Returns None if no face detected or model not ready."""
+        if not self._initialized:
+            self._initialize_sync()
         if not self.is_ready:
             logger.error("extract_face_embedding called but model not ready")
             return None
@@ -93,6 +95,8 @@ class BiometricEngine:
 
     def extract_face_data(self, image_bytes: bytes) -> Optional[dict]:
         """Extract full face analysis data including embedding, landmarks, quality metrics."""
+        if not self._initialized:
+            self._initialize_sync()
         if not self.is_ready:
             return None
 

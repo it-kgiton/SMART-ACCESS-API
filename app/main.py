@@ -1,4 +1,3 @@
-import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -25,8 +24,7 @@ async def lifespan(app: FastAPI):
             logger.critical(f"Database connection failed at startup: {e}")
             logger.critical("Server will still start — fix DATABASE_URL and redeploy.")
 
-    # Initialize InsightFace ArcFace model in background — server starts immediately
-    asyncio.create_task(biometric_engine.initialize())
+    # BiometricEngine is initialized lazily on first API call to avoid OOM at startup
     yield
     # Shutdown
     await engine.dispose()
