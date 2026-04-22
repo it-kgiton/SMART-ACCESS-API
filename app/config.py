@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import List
 
 
@@ -19,6 +20,16 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = ""
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def force_asyncpg_driver(cls, v: str) -> str:
+        """Normalize any postgres:// or postgresql:// URL to postgresql+asyncpg://"""
+        if v.startswith("postgres://"):
+            v = "postgresql+asyncpg://" + v[len("postgres://"):]
+        elif v.startswith("postgresql://"):
+            v = "postgresql+asyncpg://" + v[len("postgresql://"):]
+        return v
 
     # JWT
     JWT_SECRET_KEY: str = ""
