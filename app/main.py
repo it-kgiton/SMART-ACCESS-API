@@ -6,7 +6,7 @@ from loguru import logger
 import traceback
 
 from app.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, AsyncSessionLocal
 from app.api.v1.router import api_router
 from app.api.v1.endpoints.ws_device import router as ws_router
 from app.services.biometric_engine import biometric_engine
@@ -74,8 +74,9 @@ async def health_check():
     db_ok = False
     if settings.DATABASE_URL:
         try:
-            async with engine.connect() as conn:
-                await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+            from sqlalchemy import text
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
             db_ok = True
         except Exception as e:
             logger.error(f"Health check DB probe failed: {e}")
