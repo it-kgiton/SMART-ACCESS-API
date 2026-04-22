@@ -25,17 +25,11 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def force_asyncpg_driver(cls, v: str) -> str:
-        """Normalize any postgres:// or postgresql:// URL to postgresql+asyncpg://
-        and disable prepared statement caching for pgbouncer compatibility."""
+        """Normalize any postgres:// or postgresql:// URL to postgresql+asyncpg://."""
         if v.startswith("postgres://"):
             v = "postgresql+asyncpg://" + v[len("postgres://"):]
         elif v.startswith("postgresql://"):
             v = "postgresql+asyncpg://" + v[len("postgresql://"):]
-        # Disable asyncpg prepared statement cache — required for pgbouncer
-        if "?" in v:
-            v = v + "&statement_cache_size=0"
-        else:
-            v = v + "?statement_cache_size=0"
         return v
 
     # JWT

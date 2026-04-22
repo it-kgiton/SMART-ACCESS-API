@@ -3,15 +3,19 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-# statement_cache_size=0 — required for Supabase/PgBouncer transaction pooling.
-# Safe for all environments (minor perf tradeoff, prevents DuplicatePreparedStatementError).
+# statement_cache_size=0 — disables asyncpg's client-side prepared statement cache.
+# prepared_statement_name_func=lambda: "" — forces ANONYMOUS prepared statements
+# (empty name). PgBouncer in transaction mode only supports anonymous prepared
+# statements; named ones (like __asyncpg_stmt_N__) cause DuplicatePreparedStatementError
+# because PgBouncer reuses server-side connections that already have those names.
 _connect_args: dict = {"statement_cache_size": 0}
 
-# Add SSL for hosted Postgres (Supabase, Railway public proxy, etc.)
-# Skip SSL only for private/local network hosts
+# Add SSL + anonymous prepared statements for hosted Postgres (Railway public proxy, etc.)
+# Skip for private/local network hosts (no PgBouncer in path)
 _no_ssl_hosts = ("localhost", "127.0.0.1", "host.docker.internal", "railway.internal")
 if not any(h in settings.DATABASE_URL for h in _no_ssl_hosts):
     _connect_args["ssl"] = "require"
+    _connect_args["prepared_statement_name_func"] = lambda: ""
 
 engine = create_async_engine(
     settings.DATABASE_URL,
