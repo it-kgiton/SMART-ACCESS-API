@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from typing import Optional
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -72,10 +73,22 @@ async def list_transactions(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    def _parse_date(s: Optional[str]) -> Optional[datetime]:
+        if not s:
+            return None
+        try:
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except ValueError:
+            return None
+
     service = TransactionService(db)
     transactions, total = await service.list_transactions(
         school_id=school_id, client_id=client_id, merchant_id=merchant_id,
-        txn_type=type, status=status, date_from=date_from, date_to=date_to,
+        txn_type=type, status=status,
+        date_from=_parse_date(date_from), date_to=_parse_date(date_to),
         skip=skip, limit=limit,
     )
     return {
@@ -94,10 +107,21 @@ async def get_transaction_stats(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant", "parent")),
 ):
+    def _parse_date(s: Optional[str]) -> Optional[datetime]:
+        if not s:
+            return None
+        try:
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except ValueError:
+            return None
+
     service = TransactionService(db)
     stats = await service.get_stats(
         school_id=school_id, merchant_id=merchant_id,
-        date_from=date_from, date_to=date_to,
+        date_from=_parse_date(date_from), date_to=_parse_date(date_to),
     )
     return {"success": True, "data": stats}
 
