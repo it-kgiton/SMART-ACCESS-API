@@ -4,6 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.wallet import Wallet, WalletLedger, LedgerType, WalletStatus
+from app.models.client import Client
 from app.core.exceptions import InsufficientBalanceException, BadRequestException
 
 
@@ -50,6 +51,14 @@ class WalletService:
         )
         self.db.add(ledger)
 
+        # Sync balance to clients table
+        client_result = await self.db.execute(
+            select(Client).where(Client.id == client_id)
+        )
+        client = client_result.scalar_one_or_none()
+        if client:
+            client.balance = wallet.balance
+
         if _auto_commit:
             await self.db.commit()
             await self.db.refresh(wallet)
@@ -89,6 +98,14 @@ class WalletService:
         )
         self.db.add(ledger)
 
+        # Sync balance to clients table
+        client_result = await self.db.execute(
+            select(Client).where(Client.id == wallet.client_id)
+        )
+        client = client_result.scalar_one_or_none()
+        if client:
+            client.balance = wallet.balance
+
         if _auto_commit:
             await self.db.commit()
             await self.db.refresh(wallet)
@@ -122,6 +139,14 @@ class WalletService:
             description=description or "Refund",
         )
         self.db.add(ledger)
+
+        # Sync balance to clients table
+        client_result = await self.db.execute(
+            select(Client).where(Client.id == wallet.client_id)
+        )
+        client = client_result.scalar_one_or_none()
+        if client:
+            client.balance = wallet.balance
 
         if _auto_commit:
             await self.db.commit()
