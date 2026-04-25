@@ -2,18 +2,18 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: smartaccess
+      POSTGRES_USER: biometric
+      POSTGRES_PASSWORD: biometric123
+      POSTGRES_DB: biometric_db
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U biometric -d biometric_db"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   api:
     build: .
@@ -21,12 +21,12 @@ services:
       - "8000:8000"
     env_file:
       - .env
-    volumes:
-      - .:/app
-      - insightface_models:/root/.insightface
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - .:/app
+      - insightface_models:/root/.insightface
     dns:
       - 8.8.8.8
       - 8.8.4.4
