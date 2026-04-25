@@ -227,3 +227,72 @@ class EnrollmentService:
             "face_size": face_data["face_size"],
             "num_faces": face_data["num_faces"],
         }
+
+    async def identify_face(self, image_bytes: bytes) -> dict:
+        """Identify a client by face without knowing client_id (1:N search).
+        Used in POS biometric checkout flow."""
+        from app.config import settings
+
+        if not biometric_engine.is_ready:
+            raise BadRequestException("Biometric engine is not initialized.")
+
+        loop = asyncio.get_event_loop()
+        embedding = await loop.run_in_executor(
+            None, biometric_engine.extract_face_embedding, image_bytes
+        )
+        if embedding is None:
+            raise BadRequestException("No face detected in the image.")
+
+        # Search all active face credentials
+        result = await self.db.execute(
+            select(FaceCredential).where(FaceCredential.status == CredentialStatus.ACTIVE)
+        )
+        credentials = result.scalars().all()
+
+        best_match = None
+        best_score = 0.0
+
+        for cred in credentials:
+            stored_embedding = np.frombuffer(cred.embedding, dtype=np.float32)
+            score = biometric_engine.compare_face_embeddings(embedding, stored_embedding)
+            if score > best_score:
+                best_score = score
+                best_match = cred
+
+        threshold = settings.FACE_SIMILARITY_THRESHOLD
+
+        if best_match and best_score >= threshold:
+            client_result = await self.db.execute(
+                select(Client).where(Client.id == best_match.client_id)
+            )
+            client = client_result.scalar_one_or_none()
+
+            if client:
+                # Get wallet balance
+                from app.models.wallet import Wallet
+                wallet_result = await self.db.execute(
+                    select(Wallet).where(Wallet.client_id == client.id)
+                )
+                wallet = wallet_result.scalar_one_or_none()
+
+                return {
+                    "identified": True,
+                    "client_id": client.id,
+                    "client_name": client.name,
+                    "student_id_number": client.student_id_number,
+                    "class_name": client.class_name,
+                    "grade": client.grade,
+                    "school_id": client.school_id,
+                    "photo_url": client.photo_url,
+                    "balance": float(wallet.balance) if wallet else 0.0,
+                    "similarity": round(float(best_score), 4),
+                    "threshold": threshold,
+                }
+
+        return {
+            "identified": False,
+            "client_id": None,
+            "client_name": None,
+            "similarity": round(float(best_score), 4),
+            "threshold": threshold,
+        }

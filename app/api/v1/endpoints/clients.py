@@ -28,7 +28,7 @@ async def list_clients(
     search: Optional[str] = None, status: Optional[str] = None,
     skip: int = 0, limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "parent")),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "parent", "merchant")),
 ):
     service = ClientService(db)
     clients, total = await service.list(

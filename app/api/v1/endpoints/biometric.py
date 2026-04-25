@@ -5,9 +5,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.schemas.transaction import TransactionResponse
 from app.services.transaction_service import TransactionService
-from app.dependencies import get_current_device
+from app.services.enrollment_service import EnrollmentService
+from app.dependencies import get_current_device, require_any_role
 
 router = APIRouter()
+
+
+@router.post("/face-identify")
+async def face_identify(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
+):
+    """Identify a client by face photo (1:N search). Used in POS biometric checkout."""
+    service = EnrollmentService(db)
+    image_bytes = await file.read()
+    result = await service.identify_face(image_bytes)
+    return {"success": True, "data": result}
 
 
 @router.post("/face-payment")
