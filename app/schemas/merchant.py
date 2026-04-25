@@ -42,7 +42,7 @@ class MerchantResponse(BaseModel):
     email: Optional[str] = None
     address: Optional[str] = None
     logo_url: Optional[str] = None
-    balance: Decimal
+    balance: float
     status: str
     created_at: datetime
     updated_at: datetime

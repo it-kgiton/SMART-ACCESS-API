@@ -1,12 +1,10 @@
-from fastapi import FastAPI, Request
+import asyncio
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from loguru import logger
-import traceback
 
 from app.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine
 from app.api.v1.router import api_router
 from app.api.v1.endpoints.ws_device import router as ws_router
 from app.services.biometric_engine import biometric_engine
@@ -14,19 +12,10 @@ from app.services.biometric_engine import biometric_engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create tables — wrapped so a bad DATABASE_URL doesn't kill the process
-    if not settings.DATABASE_URL:
-        logger.critical("DATABASE_URL is not set! API will start but DB operations will fail.")
-    else:
-        try:
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            logger.info("Database tables verified/created OK")
-        except Exception as e:
-            logger.critical(f"Database connection failed at startup: {e}")
-            logger.critical("Server will still start — fix DATABASE_URL and redeploy.")
-
-    # BiometricEngine is initialized lazily on first API call to avoid OOM at startup
+    # Startup
+    # NOTE: Schema/table creation is handled manually via Supabase SQL Editor or psql.
+    # Auto create_all is intentionally disabled.
+    asyncio.create_task(biometric_engine.initialize())
     yield
     # Shutdown
     await engine.dispose()
@@ -41,7 +30,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,37 +42,10 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 app.include_router(ws_router, tags=["WebSocket"])
 
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
-    logger.error(traceback.format_exc())
-    origin = request.headers.get("origin", "")
-    headers = {}
-    if origin:
-        headers["Access-Control-Allow-Origin"] = origin
-        headers["Access-Control-Allow-Credentials"] = "false"
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"},
-        headers=headers,
-    )
-
-
 @app.get("/health")
 async def health_check():
-    db_ok = False
-    if settings.DATABASE_URL:
-        try:
-            async with engine.connect() as conn:
-                await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
-            db_ok = True
-        except Exception as e:
-            logger.error(f"Health check DB probe failed: {e}")
-            db_ok = False
-
     return {
         "status": "ok",
         "version": settings.APP_VERSION,
         "biometric_engine": "ready" if biometric_engine.is_ready else "not_loaded",
-        "database": "connected" if db_ok else "disconnected",
     }

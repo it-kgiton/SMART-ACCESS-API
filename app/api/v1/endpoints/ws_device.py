@@ -22,17 +22,14 @@ Protocol (from ESP32 firmware):
 
 import json
 import asyncio
-import base64
-from typing import Dict, Optional, Any
+from typing import Dict, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
-from app.core.database import get_db, AsyncSessionLocal
+from app.core.database import AsyncSessionLocal
 from app.models.device import Device, DeviceStatus
-from app.services.enrollment_service import EnrollmentService
 
 
 router = APIRouter()
@@ -55,7 +52,7 @@ class DeviceConnectionManager:
             result = await db.execute(
                 select(Device).where(
                     Device.license_key == license_key,
-                    Device.is_active == True
+                    Device.is_active.is_(True)
                 )
             )
             device = result.scalar_one_or_none()
@@ -136,8 +133,7 @@ class DeviceConnectionManager:
         for ws in watchers[:]:  # copy to avoid mutation during iteration
             try:
                 await ws.send_json(data)
-            except Exception as e:
-                logger.debug(f"[WS] Watcher send failed, removing: {e}")
+            except:
                 self.remove_watcher(license_key, ws)
     
     async def forward_to_watchers(self, license_key: str, event_data: dict):
@@ -201,32 +197,11 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                 elif event in ("enroll_start", "enroll_scan1", "enroll_scan1_ok", 
                                "enroll_scan2", "enroll_retry", "enroll_ok", 
                                "enroll_image", "error"):
+                    # Forward enrollment events to watchers
+                    await device_manager.forward_to_watchers(license_key, msg)
+                    
                     if event == "enroll_ok":
                         logger.info(f"[WS] Enroll OK: {license_key} customer={msg.get('customer_id')}")
-                        client_id = msg.get("customer_id")  # firmware uses customer_id for the client ID
-                        finger_id = msg.get("finger_id", 1)
-                        template_b64 = msg.get("template")
-                        if client_id and template_b64:
-                            try:
-                                template_bytes = base64.b64decode(template_b64)
-                                async with AsyncSessionLocal() as db:
-                                    service = EnrollmentService(db)
-                                    await service.enroll_fingerprint(
-                                        client_id,
-                                        template_bytes,
-                                        finger_index=finger_id,
-                                    )
-                                logger.info(f"[WS] Fingerprint saved to DB: client={client_id} finger={finger_id}")
-                                await device_manager.forward_to_watchers(license_key, {**msg, "saved": True})
-                            except Exception as e:
-                                logger.error(f"[WS] Failed to save fingerprint: {e}")
-                                await device_manager.forward_to_watchers(license_key, {**msg, "saved": False, "error": str(e)})
-                        else:
-                            logger.warning(f"[WS] enroll_ok missing client_id or template from {license_key}")
-                            await device_manager.forward_to_watchers(license_key, msg)
-                    else:
-                        # Forward other enrollment progress events to watchers
-                        await device_manager.forward_to_watchers(license_key, msg)
                 
                 elif event in ("verify_start", "verify_scan", "verify_processing",
                                "verify_request", "verify_batch_ok", "verify_ok", 
@@ -252,14 +227,11 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                     
             except json.JSONDecodeError:
                 logger.warning(f"[WS] Invalid JSON from {license_key}: {data[:100]}")
-
+                
     except WebSocketDisconnect:
-        pass  # handled in finally
-    except Exception as e:
-        logger.error(f"[WS] Unexpected error for device {license_key}: {e}")
-    finally:
         device_manager.disconnect(license_key)
-        # Always mark device offline in DB
+        
+        # Update device status to offline
         async with AsyncSessionLocal() as db:
             result = await db.execute(
                 select(Device).where(Device.license_key == license_key)
@@ -271,24 +243,11 @@ async def device_websocket(websocket: WebSocket, license_key: str):
 
 
 @router.websocket("/ws/dashboard/device/{license_key}")
-async def dashboard_device_websocket(
-    websocket: WebSocket,
-    license_key: str,
-    token: Optional[str] = None,
-):
+async def dashboard_device_websocket(websocket: WebSocket, license_key: str):
     """
     WebSocket for dashboard to watch a specific device's events.
-    Requires a valid JWT passed as ?token=<JWT> query parameter.
+    Used for real-time enrollment/verification UI updates.
     """
-    from app.core.security import decode_token
-    if not token:
-        await websocket.close(code=4001, reason="Authentication required")
-        return
-    payload = decode_token(token)
-    if payload is None or payload.get("type") == "device":
-        await websocket.close(code=4003, reason="Invalid or expired token")
-        return
-
     await websocket.accept()
     device_manager.add_watcher(license_key, websocket)
     

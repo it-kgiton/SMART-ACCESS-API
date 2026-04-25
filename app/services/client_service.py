@@ -7,7 +7,7 @@ from app.models.client import Client, ClientStatus
 from app.models.wallet import Wallet
 from app.schemas.client import ClientCreate, ClientUpdate
 from app.core.security import hash_password
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import NotFoundException
 
 
 class ClientService:

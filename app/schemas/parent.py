@@ -26,7 +26,7 @@ class ParentResponse(BaseModel):
     name: str
     phone: Optional[str]
     email: Optional[str]
-    daily_limit_default: Decimal
+    daily_limit_default: float
     created_at: datetime
     updated_at: datetime
 

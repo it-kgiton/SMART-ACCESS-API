@@ -1,6 +1,4 @@
-import json
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
 from typing import List
 
 
@@ -10,7 +8,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
 
-    # Server — Railway injects PORT at runtime; fallback to 8000 for local
+    # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
@@ -21,16 +19,6 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = ""
-
-    @field_validator("DATABASE_URL", mode="before")
-    @classmethod
-    def force_asyncpg_driver(cls, v: str) -> str:
-        """Normalize any postgres:// or postgresql:// URL to postgresql+asyncpg://."""
-        if v.startswith("postgres://"):
-            v = "postgresql+asyncpg://" + v[len("postgres://"):]
-        elif v.startswith("postgresql://"):
-            v = "postgresql+asyncpg://" + v[len("postgresql://"):]
-        return v
 
     # JWT
     JWT_SECRET_KEY: str = ""
@@ -50,29 +38,8 @@ class Settings(BaseSettings):
     FIRMWARE_STORAGE_BUCKET: str = "firmware"
     BIOMETRIC_STORAGE_BUCKET: str = "biometric-assets"
 
-    # CORS — Railway: set as comma-separated or JSON array
-    # e.g. "https://app.vercel.app" or "[\"https://app.vercel.app\"]"
-    CORS_ORIGINS: List[str] = ["*"]
-
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str):
-            v = v.strip()
-            if v.startswith("["):
-                try:
-                    parsed = json.loads(v)
-                    if isinstance(parsed, list):
-                        result = [str(i).strip() for i in parsed if str(i).strip()]
-                        return result if result else ["*"]
-                except (ValueError, TypeError):
-                    pass
-            # Comma-separated or single URL
-            result = [u.strip() for u in v.split(",") if u.strip()]
-            return result if result else ["*"]
-        if isinstance(v, list):
-            return v if v else ["*"]
-        return ["*"]
+    # CORS
+    CORS_ORIGINS: List[str] = ["*"]  # Allow all for dev; restrict in production
 
     # KGiTON API Integration
     KGITON_API_URL: str = ""

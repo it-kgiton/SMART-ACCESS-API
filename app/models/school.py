@@ -38,11 +38,11 @@ class School(Base):
     city: Mapped[str] = mapped_column(String(255), nullable=True)
     admin_user_id: Mapped[str] = mapped_column(String(36), nullable=True)
     school_type: Mapped[str] = mapped_column(
-        SAEnum(SchoolType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(SchoolType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=True,
     )
     status: Mapped[str] = mapped_column(
-        SAEnum(SchoolStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(SchoolStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=SchoolStatus.PENDING_APPROVAL,
     )
     approved_by: Mapped[str] = mapped_column(String(36), nullable=True)

@@ -28,7 +28,7 @@ class Notification(Base):
         String(36), ForeignKey("users.id"), nullable=False
     )
     notification_type: Mapped[str] = mapped_column(
-        SAEnum(NotificationType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(NotificationType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=False,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)

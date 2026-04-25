@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.audit import AuditLog, AuditEventType, AuditResult
+from app.models.audit import AuditLog
 
 
 class AuditService:

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, DateTime, Text, Enum as SAEnum, Boolean
+from sqlalchemy import String, DateTime, Enum as SAEnum, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 
@@ -34,11 +34,11 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(
-        SAEnum(UserRole, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(UserRole, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=False,
     )
     status: Mapped[str] = mapped_column(
-        SAEnum(AccountStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(AccountStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=AccountStatus.ACTIVE,
     )
     # Scoping fields

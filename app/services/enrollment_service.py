@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
 
 from app.models.client import Client
 from app.models.biometric import FaceCredential, FingerprintCredential, CredentialStatus

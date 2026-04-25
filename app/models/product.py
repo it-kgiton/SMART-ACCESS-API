@@ -30,7 +30,7 @@ class Product(Base):
     description: Mapped[str] = mapped_column(Text, nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     category: Mapped[str] = mapped_column(
-        SAEnum(ProductCategory, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(ProductCategory, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=ProductCategory.LAINNYA,
     )
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)

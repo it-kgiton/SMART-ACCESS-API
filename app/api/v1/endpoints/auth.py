@@ -6,8 +6,8 @@ import json
 from app.core.database import get_db
 from app.core.exceptions import BadRequestException
 from app.schemas.auth import (
-    LoginRequest, LoginResponse, UserCreate, UserResponse, UserUpdate,
-    ProfileUpdateName, ProfileChangePassword, UserListResponse,
+    LoginRequest, UserCreate, UserResponse, UserUpdate,
+    ProfileUpdateName, ProfileChangePassword,
 )
 from app.schemas.approval import ApprovalCreate
 from app.services.auth_service import AuthService

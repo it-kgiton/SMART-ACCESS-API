@@ -33,7 +33,7 @@ class DashboardService:
 
         # Users
         total_users = (await self.db.execute(
-            select(func.count(User.id)).where(User.is_active == True)
+            select(func.count(User.id)).where(User.is_active.is_(True))
         )).scalar() or 0
 
         # Merchants
@@ -77,7 +77,7 @@ class DashboardService:
 
         # Enrollment rate
         enrolled = (await self.db.execute(
-            select(func.count(Client.id)).where(Client.biometric_enrolled == True)
+            select(func.count(Client.id)).where(Client.biometric_enrolled.is_(True))
         )).scalar() or 0
         enrollment_rate = (enrolled / total_clients) if total_clients > 0 else 0
 

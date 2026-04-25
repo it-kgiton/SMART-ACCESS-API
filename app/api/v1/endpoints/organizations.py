@@ -4,11 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.organization import (
-    RegionCreate, RegionUpdate, RegionResponse, RegionListResponse,
-    SchoolCreate, SchoolUpdate, SchoolResponse, SchoolListResponse,
+    RegionCreate, RegionUpdate, RegionResponse, SchoolCreate, SchoolUpdate, SchoolResponse,
 )
 from app.services.organization_service import OrganizationService
-from app.dependencies import get_current_user, require_role, require_any_role
+from app.dependencies import require_role, require_any_role
 
 router = APIRouter()
 

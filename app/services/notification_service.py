@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.notification import Notification, NotificationType
+from app.models.notification import Notification
 from app.core.exceptions import NotFoundException
 
 
@@ -39,7 +39,7 @@ class NotificationService:
         )
         unread_query = select(func.count(Notification.id)).where(
             Notification.recipient_user_id == user_id,
-            Notification.is_read == False,
+            Notification.is_read.is_(False),
         )
 
         total = (await self.db.execute(count_query)).scalar()
@@ -70,7 +70,7 @@ class NotificationService:
             sql_update(Notification)
             .where(
                 Notification.recipient_user_id == user_id,
-                Notification.is_read == False,
+                Notification.is_read.is_(False),
             )
             .values(is_read=True)
         )

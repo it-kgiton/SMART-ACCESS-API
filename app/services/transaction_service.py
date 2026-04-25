@@ -5,13 +5,12 @@ from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 import numpy as np
-from loguru import logger
 
-from app.models.transaction import Transaction, TransactionItem, TransactionType, TransactionStatus, BiometricMethod
+from app.models.transaction import Transaction, TransactionItem, TransactionType, TransactionStatus
 from app.models.device import Device, DeviceStatus
 from app.models.client import Client, ClientStatus
 from app.models.merchant import Merchant
-from app.models.wallet import Wallet, WalletStatus
+from app.models.wallet import WalletStatus
 from app.models.biometric import FaceCredential, FingerprintCredential, CredentialStatus
 from app.services.wallet_service import WalletService
 from app.services.biometric_engine import biometric_engine

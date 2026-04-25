@@ -3,7 +3,7 @@ from typing import Optional, List
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.auth import UserCreate, LoginRequest
 from app.core.security import verify_password, hash_password, create_access_token
 from app.core.exceptions import BadRequestException, UnauthorizedException, NotFoundException
@@ -87,8 +87,8 @@ class AuthService:
         region_id: Optional[str] = None, skip: int = 0, limit: int = 50,
         exclude_roles: Optional[List[str]] = None,
     ) -> tuple:
-        query = select(User).where(User.is_active == True)
-        count_query = select(func.count(User.id)).where(User.is_active == True)
+        query = select(User).where(User.is_active.is_(True))
+        count_query = select(func.count(User.id)).where(User.is_active.is_(True))
 
         if exclude_roles:
             query = query.where(~User.role.in_(exclude_roles))

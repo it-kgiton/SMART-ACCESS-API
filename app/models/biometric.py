@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Boolean, DateTime, Float, ForeignKey, Enum as SAEnum, LargeBinary
+from sqlalchemy import String, DateTime, Float, ForeignKey, Enum as SAEnum, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -27,7 +27,7 @@ class FaceCredential(Base):
     embedding_version: Mapped[str] = mapped_column(String(50), default="arcface_r100")
     quality_score: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(CredentialStatus, values_callable=lambda x: [e.value for e in x]), default=CredentialStatus.ACTIVE
+        SAEnum(CredentialStatus, values_callable=lambda x: [e.value for e in x], native_enum=False), default=CredentialStatus.ACTIVE
     )
     enrolled_by: Mapped[str] = mapped_column(String(36), nullable=True)
     enrolled_at: Mapped[datetime] = mapped_column(
@@ -55,7 +55,7 @@ class FingerprintCredential(Base):
     finger_index: Mapped[int] = mapped_column(default=1)
     quality_score: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(CredentialStatus, values_callable=lambda x: [e.value for e in x]), default=CredentialStatus.ACTIVE
+        SAEnum(CredentialStatus, values_callable=lambda x: [e.value for e in x], native_enum=False), default=CredentialStatus.ACTIVE
     )
     enrolled_by: Mapped[str] = mapped_column(String(36), nullable=True)
     enrolled_at: Mapped[datetime] = mapped_column(

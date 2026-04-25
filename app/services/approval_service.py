@@ -31,14 +31,19 @@ class ApprovalService:
         return result.scalar_one_or_none()
 
     async def list(
-        self, status: Optional[str] = None, skip: int = 0, limit: int = 50,
+        self, status: Optional[str] = None, requestor_id: Optional[str] = None,
+        skip: int = 0, limit: int = 50,
     ) -> tuple:
         query = select(ApprovalRequest)
         count_query = select(func.count(ApprovalRequest.id))
 
         if status:
-            query = query.where(ApprovalRequest.status == status)
-            count_query = count_query.where(ApprovalRequest.status == status)
+            status_enum = ApprovalStatus(status)
+            query = query.where(ApprovalRequest.status == status_enum)
+            count_query = count_query.where(ApprovalRequest.status == status_enum)
+        if requestor_id:
+            query = query.where(ApprovalRequest.requestor_id == requestor_id)
+            count_query = count_query.where(ApprovalRequest.requestor_id == requestor_id)
 
         total = (await self.db.execute(count_query)).scalar()
         result = await self.db.execute(

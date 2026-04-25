@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, DateTime, Text, Enum as SAEnum
+from sqlalchemy import String, DateTime, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -24,7 +24,7 @@ class Region(Base):
     province: Mapped[str] = mapped_column(String(255), nullable=True)
     admin_user_id: Mapped[str] = mapped_column(String(36), nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(RegionStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(RegionStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=RegionStatus.ACTIVE,
     )
     created_by: Mapped[str] = mapped_column(String(36), nullable=True)

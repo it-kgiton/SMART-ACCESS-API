@@ -29,10 +29,12 @@ async def list_approvals(
     status: Optional[str] = None,
     skip: int = 0, limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_any_role("super_admin", "admin_hub")),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "parent")),
 ):
     service = ApprovalService(db)
-    approvals, total = await service.list(status=status, skip=skip, limit=limit)
+    # Parents may only see their own approval requests
+    requestor_id = current_user["sub"] if current_user["role"] == "parent" else None
+    approvals, total = await service.list(status=status, requestor_id=requestor_id, skip=skip, limit=limit)
     return {
         "success": True,
         "data": [ApprovalResponse.model_validate(a) for a in approvals],

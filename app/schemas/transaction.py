@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from decimal import Decimal
 
 
 class TransactionItemResponse(BaseModel):
@@ -11,6 +10,8 @@ class TransactionItemResponse(BaseModel):
     quantity: int
     unit_price: float
     subtotal: float
+
+    model_config = {"from_attributes": True}
 
 
 class TransactionResponse(BaseModel):

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, DateTime, Text, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, DateTime, Text, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 
@@ -33,7 +33,7 @@ class AuditLog(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     event_type: Mapped[str] = mapped_column(
-        SAEnum(AuditEventType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(AuditEventType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=False,
     )
     actor_id: Mapped[str] = mapped_column(String(36), nullable=True)
@@ -44,7 +44,7 @@ class AuditLog(Base):
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
     device_info: Mapped[str] = mapped_column(String(500), nullable=True)
     result: Mapped[str] = mapped_column(
-        SAEnum(AuditResult, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(AuditResult, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=AuditResult.SUCCESS,
     )
     school_id: Mapped[str] = mapped_column(String(36), nullable=True)

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import String, Boolean, DateTime, Text, ForeignKey, Numeric, Enum as SAEnum
+from sqlalchemy import String, DateTime, Text, ForeignKey, Numeric, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -36,7 +36,7 @@ class Merchant(Base):
     )
     business_name: Mapped[str] = mapped_column(String(255), nullable=False)
     business_type: Mapped[str] = mapped_column(
-        SAEnum(BusinessType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(BusinessType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=BusinessType.KANTIN,
     )
     owner_name: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -46,7 +46,7 @@ class Merchant(Base):
     logo_url: Mapped[str] = mapped_column(String(500), nullable=True)
     balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"))
     status: Mapped[str] = mapped_column(
-        SAEnum(MerchantStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(MerchantStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=MerchantStatus.ACTIVE,
     )
     created_at: Mapped[datetime] = mapped_column(

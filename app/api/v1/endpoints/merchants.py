@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.exceptions import NotFoundException
 from app.schemas.merchant import MerchantCreate, MerchantUpdate, MerchantResponse
 from app.services.merchant_service import MerchantService
-from app.dependencies import get_current_user, require_any_role
+from app.dependencies import require_any_role
 
 router = APIRouter()
 

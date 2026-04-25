@@ -13,7 +13,7 @@ from app.schemas.device import (
     DeviceAuthResponse,
 )
 from app.services.device_service import DeviceService
-from app.dependencies import get_current_user, require_any_role
+from app.dependencies import require_any_role
 
 router = APIRouter()
 

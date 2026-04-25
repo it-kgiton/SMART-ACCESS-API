@@ -47,7 +47,7 @@ class Client(Base):
     balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"))
     pin_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(ClientStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(ClientStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=ClientStatus.ACTIVE,
     )
     photo_url: Mapped[str] = mapped_column(String(500), nullable=True)

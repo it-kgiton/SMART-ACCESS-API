@@ -33,10 +33,10 @@ class ClientResponse(BaseModel):
     student_id_number: Optional[str]
     class_name: Optional[str]
     grade: Optional[str]
-    daily_spending_limit: Optional[Decimal]
+    daily_spending_limit: Optional[float]
     biometric_enrolled: bool
     biometric_last_updated: Optional[datetime]
-    balance: Decimal
+    balance: float
     status: str
     photo_url: Optional[str]
     created_at: datetime

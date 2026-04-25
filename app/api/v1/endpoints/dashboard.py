@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.schemas.dashboard import AuditLogResponse
 from app.services.dashboard_service import DashboardService
 from app.services.audit_service import AuditService
-from app.dependencies import get_current_user, require_any_role
+from app.dependencies import require_any_role
 
 router = APIRouter()
 

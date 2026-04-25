@@ -30,7 +30,7 @@ class ProductResponse(BaseModel):
     merchant_id: str
     name: str
     description: Optional[str]
-    price: Decimal
+    price: float
     category: str
     image_url: Optional[str]
     is_available: bool

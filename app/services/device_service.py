@@ -2,14 +2,13 @@ from typing import Optional
 from datetime import datetime, timezone
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
 
 from app.models.device import Device, DeviceStatus
 from app.models.school import School
 from app.models.merchant import Merchant
 from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceHeartbeat
 from app.core.security import create_device_token
-from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
+from app.core.exceptions import ConflictException, NotFoundException
 
 
 class DeviceService:

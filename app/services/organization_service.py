@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.region import Region, RegionStatus
+from app.models.region import Region
 from app.models.school import School, SchoolStatus
 from app.schemas.organization import RegionCreate, RegionUpdate, SchoolCreate, SchoolUpdate
 from app.core.exceptions import BadRequestException, NotFoundException, ConflictException

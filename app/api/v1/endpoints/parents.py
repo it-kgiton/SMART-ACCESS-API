@@ -6,9 +6,22 @@ from app.core.database import get_db
 from app.core.exceptions import NotFoundException
 from app.schemas.parent import ParentCreate, ParentUpdate, ParentResponse
 from app.services.parent_service import ParentService
-from app.dependencies import get_current_user, require_any_role
+from app.dependencies import require_any_role, require_role
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=ParentResponse)
+async def get_my_parent_profile(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role("parent")),
+):
+    """Return the parent profile for the currently logged-in parent user."""
+    service = ParentService(db)
+    parent = await service.get_by_user_id(current_user["sub"])
+    if not parent:
+        raise NotFoundException("Parent profile not found for this user")
+    return parent
 
 
 @router.post("/")

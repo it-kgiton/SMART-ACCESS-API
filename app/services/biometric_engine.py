@@ -1,4 +1,3 @@
-import io
 import asyncio
 import numpy as np
 from typing import Optional
@@ -198,7 +197,6 @@ class BiometricEngine:
         scores["contrast"] = min(1.0, contrast)
 
         # 5. Face detection quality
-        face_data = None
         if self.is_ready:
             faces = self._face_model.get(img)
             if faces:

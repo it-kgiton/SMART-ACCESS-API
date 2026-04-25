@@ -46,17 +46,17 @@ class Ticket(Base):
         String(36), ForeignKey("schools.id"), nullable=True
     )
     category: Mapped[str] = mapped_column(
-        SAEnum(TicketCategory, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(TicketCategory, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=TicketCategory.OTHER,
     )
     subject: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(TicketStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(TicketStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=TicketStatus.OPEN,
     )
     priority: Mapped[str] = mapped_column(
-        SAEnum(TicketPriority, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(TicketPriority, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=TicketPriority.MEDIUM,
     )
     sla_deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate
-from app.core.exceptions import NotFoundException, BadRequestException
+from app.core.exceptions import NotFoundException
 
 
 class ProductService:
@@ -48,8 +48,8 @@ class ProductService:
             query = query.where(Product.category == category)
             count_query = count_query.where(Product.category == category)
         if available_only:
-            query = query.where(Product.is_available == True)
-            count_query = count_query.where(Product.is_available == True)
+            query = query.where(Product.is_available.is_(True))
+            count_query = count_query.where(Product.is_available.is_(True))
         if search:
             pattern = f"%{search}%"
             query = query.where(Product.name.ilike(pattern))

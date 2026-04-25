@@ -27,7 +27,7 @@ class ApprovalRequest(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     request_type: Mapped[str] = mapped_column(
-        SAEnum(ApprovalRequestType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(ApprovalRequestType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=False,
     )
     requestor_id: Mapped[str] = mapped_column(
@@ -39,7 +39,7 @@ class ApprovalRequest(Base):
     entity_type: Mapped[str] = mapped_column(String(100), nullable=True)
     entity_data: Mapped[str] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(ApprovalStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(ApprovalStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=ApprovalStatus.PENDING,
     )
     requested_at: Mapped[datetime] = mapped_column(

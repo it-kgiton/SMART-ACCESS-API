@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.ticket import Ticket, TicketStatus, TicketPriority
+from app.models.ticket import Ticket, TicketStatus
 from app.schemas.ticket import TicketCreate, TicketUpdate
 from app.core.exceptions import NotFoundException
 

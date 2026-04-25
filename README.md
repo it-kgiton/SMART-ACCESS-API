@@ -6,7 +6,7 @@ Backend platform for Hybrid Biometric Merchant Payment System (Single Device).
 
 - **Python 3.11+** with **FastAPI**
 - **Supabase** (PostgreSQL + pgvector + Auth + Storage + Realtime)
-- **SQLAlchemy 2.0** + **Alembic** for ORM and migrations
+- **SQLAlchemy 2.0** for ORM
 - **InsightFace** (ArcFace) for face recognition
 - **ONNX Runtime** for ML inference
 
@@ -22,16 +22,7 @@ pip install -r requirements.txt
 
 # Copy env template
 cp .env.example .env
-# Edit .env with your Supabase credentials
-
-# Run database migrations
-alembic upgrade head
-
-# For update revision alembic
-alembic revision --autogenerate -m "add_license_key_and_merchant_id_columns"
-
-# Reset database
-python reset_db.py --yes --seed
+# Edit .env with your credentials
 
 # Start development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -57,5 +48,6 @@ app/
 ## API Documentation
 
 Once running, visit:
+
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`

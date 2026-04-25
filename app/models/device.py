@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import String, Boolean, DateTime, Text, ForeignKey, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 import enum
 
 from app.core.database import Base
@@ -37,7 +37,7 @@ class Device(Base):
         String(36), ForeignKey("merchants.id"), nullable=True
     )
     device_type: Mapped[str] = mapped_column(
-        SAEnum(DeviceType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(DeviceType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=DeviceType.COMBO_DEVICE,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -47,7 +47,7 @@ class Device(Base):
     mac_address: Mapped[str] = mapped_column(String(17), nullable=True)
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
     status: Mapped[str] = mapped_column(
-        SAEnum(DeviceStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(DeviceStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=DeviceStatus.REGISTERED,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

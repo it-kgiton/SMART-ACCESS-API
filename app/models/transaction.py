@@ -45,7 +45,7 @@ class Transaction(Base):
         String(100), unique=True, nullable=False
     )
     type: Mapped[str] = mapped_column(
-        SAEnum(TransactionType, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(TransactionType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=False,
     )
     client_id: Mapped[str] = mapped_column(
@@ -66,15 +66,15 @@ class Transaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     fee_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"))
     status: Mapped[str] = mapped_column(
-        SAEnum(TransactionStatus, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(TransactionStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=TransactionStatus.PENDING,
     )
     payment_method: Mapped[str] = mapped_column(
-        SAEnum(PaymentMethod, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(PaymentMethod, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=True,
     )
     biometric_method: Mapped[str] = mapped_column(
-        SAEnum(BiometricMethod, values_callable=lambda x: [e.value for e in x]),
+        SAEnum(BiometricMethod, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=True,
     )
     confidence_score: Mapped[float] = mapped_column(Float, nullable=True)

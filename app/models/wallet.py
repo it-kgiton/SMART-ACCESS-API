@@ -33,7 +33,7 @@ class Wallet(Base):
     )
     balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"))
     status: Mapped[str] = mapped_column(
-        SAEnum(WalletStatus, values_callable=lambda x: [e.value for e in x]), default=WalletStatus.ACTIVE
+        SAEnum(WalletStatus, values_callable=lambda x: [e.value for e in x], native_enum=False), default=WalletStatus.ACTIVE
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -57,7 +57,7 @@ class WalletLedger(Base):
     wallet_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("wallets.id"), nullable=False
     )
-    type: Mapped[str] = mapped_column(SAEnum(LedgerType, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    type: Mapped[str] = mapped_column(SAEnum(LedgerType, values_callable=lambda x: [e.value for e in x], native_enum=False), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     balance_before: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
     balance_after: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
