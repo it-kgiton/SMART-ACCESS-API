@@ -59,3 +59,12 @@ class MerchantListResponse(BaseModel):
     success: bool = True
     data: List[MerchantResponse]
     total: int
+
+
+class WithdrawalRequest(BaseModel):
+    amount: float
+    method: str = "bank"  # "bank" | "cash"
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    account_name: Optional[str] = None
+    notes: Optional[str] = None

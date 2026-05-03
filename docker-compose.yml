@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: biometric
-      POSTGRES_PASSWORD: biometric123
-      POSTGRES_DB: biometric_db
+      POSTGRES_USER: SmartAccessAPI
+      POSTGRES_PASSWORD: SmartAccessAPI
+      POSTGRES_DB: SmartAccessAPI
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U biometric -d biometric_db"]
+      test: ["CMD-SHELL", "pg_isready -U SmartAccessAPI -d SmartAccessAPI"]
       interval: 5s
       timeout: 5s
       retries: 10

@@ -4,8 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import NotFoundException
-from app.schemas.merchant import MerchantCreate, MerchantUpdate, MerchantResponse
+from app.schemas.merchant import MerchantCreate, MerchantUpdate, MerchantResponse, WithdrawalRequest
 from app.services.merchant_service import MerchantService
+from app.services.transaction_service import TransactionService
 from app.dependencies import require_any_role
 
 router = APIRouter()
@@ -38,6 +39,21 @@ async def list_merchants(
         "data": [MerchantResponse.model_validate(m) for m in merchants],
         "total": total,
     }
+
+
+@router.get("/me", response_model=MerchantResponse)
+async def get_my_merchant(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("merchant")),
+):
+    merchant_id = current_user.get("merchant_id")
+    if not merchant_id:
+        raise NotFoundException("Merchant")
+    service = MerchantService(db)
+    merchant = await service.get_by_id(merchant_id)
+    if not merchant:
+        raise NotFoundException("Merchant")
+    return merchant
 
 
 @router.get("/{merchant_id}", response_model=MerchantResponse)
@@ -94,3 +110,33 @@ async def delete_merchant(
     service = MerchantService(db)
     await service.delete(merchant_id)
     return {"success": True, "message": "Merchant deleted"}
+
+
+@router.post("/{merchant_id}/withdrawal")
+async def request_withdrawal(
+    merchant_id: str,
+    data: WithdrawalRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("merchant")),
+):
+    service = TransactionService(db)
+    result = await service.withdrawal_request(
+        merchant_id=merchant_id,
+        amount=data.amount,
+        method=data.method,
+        bank_name=data.bank_name,
+        account_number=data.account_number,
+        account_name=data.account_name,
+        notes=data.notes,
+    )
+    txn = result["transaction"]
+    return {
+        "success": True,
+        "data": {
+            "id": txn.id,
+            "transaction_ref": txn.transaction_ref,
+            "amount": float(txn.amount),
+            "status": txn.status,
+            "created_at": txn.created_at.isoformat(),
+        },
+    }

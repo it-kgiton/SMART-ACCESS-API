@@ -197,6 +197,63 @@ class TransactionService:
 
         return {"transaction": refund_txn}
 
+    # ── Withdrawal request (merchant → pesantren) ──
+
+    async def withdrawal_request(
+        self,
+        merchant_id: str,
+        amount: float,
+        method: str = "bank",
+        bank_name: Optional[str] = None,
+        account_number: Optional[str] = None,
+        account_name: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> dict:
+        import json
+        merchant = await self._get_merchant(merchant_id)
+        amount_decimal = Decimal(str(amount))
+
+        if amount_decimal <= 0:
+            raise BadRequestException("Jumlah penarikan harus lebih dari 0")
+        if merchant.balance < amount_decimal:
+            raise BadRequestException("Saldo tidak cukup")
+
+        if method == "cash":
+            meta = json.dumps({
+                "method": "cash",
+                "notes": notes or "",
+            })
+        else:
+            if not bank_name or not account_number or not account_name:
+                raise BadRequestException("Data bank wajib diisi untuk metode transfer")
+            meta = json.dumps({
+                "method": "bank",
+                "bank_name": bank_name,
+                "account_number": account_number,
+                "account_name": account_name,
+                "notes": notes or "",
+            })
+
+        txn = Transaction(
+            transaction_ref=_generate_ref("withdrawal"),
+            type=TransactionType.WITHDRAWAL,
+            merchant_id=merchant_id,
+            school_id=merchant.school_id,
+            amount=amount_decimal,
+            fee_amount=Decimal("0.00"),
+            status=TransactionStatus.PENDING,
+            metadata_json=meta,
+        )
+        self.db.add(txn)
+
+        # Hold the balance immediately
+        merchant.balance -= amount_decimal
+
+        await self.db.commit()
+        await self.db.refresh(txn)
+
+        return {"transaction": txn}
+
     # ── Biometric payment from device ──
 
     async def process_face_payment(

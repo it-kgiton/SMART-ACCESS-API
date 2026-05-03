@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 from typing import List
+from pathlib import Path
+
+_ENV_FILE = Path(__file__).parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -45,7 +48,7 @@ class Settings(BaseSettings):
     KGITON_API_URL: str = ""
     KGITON_API_KEY: str = ""
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": str(_ENV_FILE), "extra": "ignore"}
 
 
 settings = Settings()

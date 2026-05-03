@@ -223,6 +223,29 @@ INSERT INTO transactions (id, transaction_ref, type, client_id, merchant_id, par
 -- Failed transaction
 ('tx-fail-000-0001', 'TRX-FAIL-20250425-001', 'purchase', 'c-lana-0000-0000-000000000001', 'm-kantin-000-0000-000000000001', NULL, 'sch-smpa-000-0000-000000000001', 'dev-fp-0000-0000-000000000002', 35000.00, 0.00, 'failed', 'fingerprint_face', 0.42, NOW() - INTERVAL '2 hours', NULL);
 
+-- Withdrawal transactions
+-- Note: merchant balances in seed already reflect these withdrawals being deducted
+--   Kantin Ceria : 3,200,000 − 500,000 (success) − 250,000 (pending) = 2,450,000
+--   Minimarket   : 2,150,000 − 350,000 (pending)                     = 1,800,000
+INSERT INTO transactions (id, transaction_ref, type, merchant_id, school_id,
+                           amount, fee_amount, status, metadata_json,
+                           created_at, completed_at) VALUES
+('tx-wd-kantin-0001', 'WD-4A2B8C3D1E9F', 'withdrawal',
+ 'm-kantin-000-0000-000000000001', 'sch-sda-0000-0000-000000000001',
+ 500000.00, 0.00, 'success',
+ '{"bank_name":"BCA","account_number":"1234567890","account_name":"Ibu Sari Dewi","notes":"Penarikan bulan lalu"}',
+ NOW() - INTERVAL '12 days', NOW() - INTERVAL '11 days'),
+('tx-wd-kantin-0002', 'WD-7F1C5A2B8D3E', 'withdrawal',
+ 'm-kantin-000-0000-000000000001', 'sch-sda-0000-0000-000000000001',
+ 250000.00, 0.00, 'pending',
+ '{"bank_name":"BCA","account_number":"1234567890","account_name":"Ibu Sari Dewi","notes":""}',
+ NOW() - INTERVAL '1 day', NULL),
+('tx-wd-mini-00001', 'WD-2E9A4C7B1F5D', 'withdrawal',
+ 'm-mini-0000-0000-000000000001', 'sch-sda-0000-0000-000000000001',
+ 350000.00, 0.00, 'pending',
+ '{"bank_name":"Mandiri","account_number":"0987654321","account_name":"Pak Hendra","notes":"Penarikan mingguan"}',
+ NOW() - INTERVAL '2 days', NULL);
+
 -- ============================================================
 --  11. TRANSACTION ITEMS
 -- ============================================================
@@ -325,7 +348,18 @@ INSERT INTO notifications (id, recipient_user_id, notification_type, title, mess
 -- Super Admin — system notification
 ('notif-admin-001', 'u-super-0000-0000-000000000001', 'system',
  'Sistem Aktif', 'Smart Access berhasil diinisialisasi dengan data uji.',
- NULL, NULL, FALSE, NOW());
+ NULL, NULL, FALSE, NOW()),
+
+-- Merchant withdrawal notifications
+('notif-merch-001', 'u-merch-0000-0000-000000000001', 'transaction',
+ 'Penarikan Dikonfirmasi', 'Permintaan penarikan saldo Rp 500.000 ke BCA telah berhasil diproses.',
+ 'transaction', 'tx-wd-kantin-0001', TRUE, NOW() - INTERVAL '11 days'),
+('notif-merch-002', 'u-merch-0000-0000-000000000001', 'transaction',
+ 'Permintaan Penarikan', 'Permintaan penarikan saldo Rp 250.000 ke BCA sedang diproses.',
+ 'transaction', 'tx-wd-kantin-0002', FALSE, NOW() - INTERVAL '1 day'),
+('notif-merch-003', 'u-merch-0000-0000-000000000002', 'transaction',
+ 'Permintaan Penarikan', 'Permintaan penarikan saldo Rp 350.000 ke Mandiri sedang diproses.',
+ 'transaction', 'tx-wd-mini-00001', FALSE, NOW() - INTERVAL '2 days');
 
 -- ============================================================
 --  14. FIRMWARE VERSIONS
