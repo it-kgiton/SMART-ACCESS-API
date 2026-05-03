@@ -2,6 +2,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from loguru import logger
 
 from app.config import settings
 from app.core.database import engine
@@ -15,7 +16,10 @@ async def lifespan(app: FastAPI):
     # Startup
     # NOTE: Schema/table creation is handled manually via Supabase SQL Editor or psql.
     # Auto create_all is intentionally disabled.
-    asyncio.create_task(biometric_engine.initialize())
+    if settings.BIOMETRIC_ENGINE_ENABLED:
+        asyncio.create_task(biometric_engine.initialize())
+    else:
+        logger.info("BiometricEngine disabled — skipping initialization (BIOMETRIC_ENGINE_ENABLED=false)")
     yield
     # Shutdown
     await engine.dispose()

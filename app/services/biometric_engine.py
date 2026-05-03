@@ -42,7 +42,12 @@ class BiometricEngine:
             self._initialized = False
 
     async def initialize(self):
-        """Initialize InsightFace model in a thread pool (non-blocking for the event loop)."""
+        """Initialize InsightFace model in a thread pool (non-blocking for the event loop).
+        Skipped if BIOMETRIC_ENGINE_ENABLED=false (e.g. low-memory Railway free tier)."""
+        from app.config import settings
+        if not settings.BIOMETRIC_ENGINE_ENABLED:
+            logger.warning("BiometricEngine disabled via BIOMETRIC_ENGINE_ENABLED=false — skipping model load")
+            return
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._initialize_sync)
 

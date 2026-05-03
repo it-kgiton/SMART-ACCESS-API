@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # Biometric — ArcFace w600k_r50 cosine similarity thresholds
     # 0.55 = payment-grade (FAR < 0.01%, FRR ~ 2%)
+    BIOMETRIC_ENGINE_ENABLED: bool = True  # Set False on low-memory deployments (e.g. Railway free tier)
     FACE_SIMILARITY_THRESHOLD: float = 0.55
     FINGERPRINT_MATCH_THRESHOLD: int = 40
     MAX_FACE_CANDIDATES: int = 5
