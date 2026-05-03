@@ -17,14 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download InsightFace buffalo_l models at build time
-# so the container doesn't need internet access at runtime
-# and startup is instant (models are ~300MB baked into image)
-RUN python -c "\
-from insightface.app import FaceAnalysis; \
-app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); \
-app.prepare(ctx_id=0, det_size=(640, 640)); \
-print('InsightFace models downloaded OK')"
+# NOTE: InsightFace buffalo_l models (~300MB) are downloaded at container startup
+# via biometric_engine.initialize() which runs in background (non-blocking).
+# API is fully functional immediately; biometric features ready after ~60s on first boot.
 
 COPY . .
 
