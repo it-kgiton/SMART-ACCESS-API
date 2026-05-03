@@ -1,5 +1,6 @@
 from typing import Optional
-from sqlalchemy import select, func
+from datetime import date
+from sqlalchemy import select, func, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -81,9 +82,28 @@ class DashboardService:
         )).scalar() or 0
         enrollment_rate = (enrolled / total_clients) if total_clients > 0 else 0
 
+        # Daily transactions (today)
+        today = date.today()
+        q_daily = select(func.count(Transaction.id)).where(
+            cast(Transaction.created_at, Date) == today
+        )
+        if school_id:
+            q_daily = q_daily.where(Transaction.school_id == school_id)
+        daily_txn = (await self.db.execute(q_daily)).scalar() or 0
+
+        q_daily_amt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+            Transaction.status == TransactionStatus.SUCCESS,
+            cast(Transaction.created_at, Date) == today,
+        )
+        if school_id:
+            q_daily_amt = q_daily_amt.where(Transaction.school_id == school_id)
+        daily_amount = float((await self.db.execute(q_daily_amt)).scalar())
+
         return {
             "total_transactions": total_txn,
             "total_transaction_amount": total_amount,
+            "daily_transactions": daily_txn,
+            "daily_transaction_amount": daily_amount,
             "total_users": total_users,
             "total_merchants": total_merchants,
             "total_clients": total_clients,

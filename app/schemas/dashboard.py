@@ -6,6 +6,8 @@ from datetime import datetime
 class DashboardStats(BaseModel):
     total_transactions: int = 0
     total_transaction_amount: float = 0
+    daily_transactions: int = 0
+    daily_transaction_amount: float = 0
     total_users: int = 0
     total_merchants: int = 0
     total_clients: int = 0
