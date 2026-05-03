@@ -1,6 +1,6 @@
 from typing import Optional
-from datetime import date
-from sqlalchemy import select, func, cast, Date
+from datetime import datetime, timezone, timedelta
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -82,10 +82,17 @@ class DashboardService:
         )).scalar() or 0
         enrollment_rate = (enrolled / total_clients) if total_clients > 0 else 0
 
-        # Daily transactions (today)
-        today = date.today()
+        # Daily transactions (today in WIB / UTC+7)
+        wib = timezone(timedelta(hours=7))
+        now_wib = datetime.now(wib)
+        day_start_wib = now_wib.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end_wib = day_start_wib + timedelta(days=1)
+        day_start_utc = day_start_wib.astimezone(timezone.utc)
+        day_end_utc = day_end_wib.astimezone(timezone.utc)
+
         q_daily = select(func.count(Transaction.id)).where(
-            cast(Transaction.created_at, Date) == today
+            Transaction.created_at >= day_start_utc,
+            Transaction.created_at < day_end_utc,
         )
         if school_id:
             q_daily = q_daily.where(Transaction.school_id == school_id)
@@ -93,7 +100,8 @@ class DashboardService:
 
         q_daily_amt = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
             Transaction.status == TransactionStatus.SUCCESS,
-            cast(Transaction.created_at, Date) == today,
+            Transaction.created_at >= day_start_utc,
+            Transaction.created_at < day_end_utc,
         )
         if school_id:
             q_daily_amt = q_daily_amt.where(Transaction.school_id == school_id)
