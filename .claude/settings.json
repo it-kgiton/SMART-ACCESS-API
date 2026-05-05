@@ -1,0 +1,92 @@
+{
+  "model": "claude-opus-4-5",
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(pytest *)",
+      "Bash(python *)",
+      "Bash(uvicorn *)",
+      "Bash(docker *)",
+      "Bash(docker-compose *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(psql *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(ls -la *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(echo *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(curl *)",
+      "Bash(which *)",
+      "Bash(source *)",
+      "Bash(export *)",
+      "Bash(pwd)",
+      "Bash(whoami)",
+      "Bash(date)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(sudo rm *)",
+      "Bash(git push --force)",
+      "Bash(git reset --hard HEAD~*)",
+      "Bash(DROP DATABASE *)",
+      "Bash(truncate *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pre-tool-use.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-tool-use.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/stop.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/subagent-stop.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "PYTHONPATH": ".",
+    "ENV": "development"
+  }
+}
