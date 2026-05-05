@@ -13,7 +13,7 @@ from app.dependencies import get_current_user, require_any_role
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("")
 async def create_approval(
     data: ApprovalCreate,
     db: AsyncSession = Depends(get_db),

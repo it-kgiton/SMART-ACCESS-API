@@ -18,7 +18,7 @@ from app.dependencies import require_any_role
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("")
 async def create_device(
     data: DeviceCreate,
     db: AsyncSession = Depends(get_db),

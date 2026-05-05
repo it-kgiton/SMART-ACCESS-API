@@ -24,7 +24,7 @@ async def get_my_parent_profile(
     return parent
 
 
-@router.post("/")
+@router.post("")
 async def create_parent(
     data: ParentCreate,
     db: AsyncSession = Depends(get_db),
