@@ -28,7 +28,9 @@ class Product(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    sku: Mapped[str] = mapped_column(String(100), nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    cost_price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=True)
     category: Mapped[str] = mapped_column(
         SAEnum(ProductCategory, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=ProductCategory.LAINNYA,
@@ -36,6 +38,8 @@ class Product(Base):
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)
     stock_quantity: Mapped[int] = mapped_column(Integer, nullable=True)
+    min_stock: Mapped[int] = mapped_column(Integer, nullable=True)
+    stock_alert_threshold: Mapped[int] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

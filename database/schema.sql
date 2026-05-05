@@ -265,17 +265,21 @@ CREATE TABLE wallet_ledger (
 
 -- ── 10. products ─────────────────────────────────────────────
 CREATE TABLE products (
-    id             VARCHAR(36)         PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    merchant_id    VARCHAR(36)         NOT NULL REFERENCES merchants(id),
-    name           VARCHAR(255)        NOT NULL,
-    description    TEXT,
-    price          NUMERIC(15,2)       NOT NULL,
-    category       product_category    NOT NULL DEFAULT 'lainnya',
-    image_url      VARCHAR(500),
-    is_available   BOOLEAN             NOT NULL DEFAULT TRUE,
-    stock_quantity INTEGER,
-    created_at     TIMESTAMPTZ         NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ         NOT NULL DEFAULT NOW()
+    id                     VARCHAR(36)         PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    merchant_id            VARCHAR(36)         NOT NULL REFERENCES merchants(id),
+    name                   VARCHAR(255)        NOT NULL,
+    description            TEXT,
+    sku                    VARCHAR(100),
+    price                  NUMERIC(15,2)       NOT NULL,
+    cost_price             NUMERIC(15,2),
+    category               product_category    NOT NULL DEFAULT 'lainnya',
+    image_url              VARCHAR(500),
+    is_available           BOOLEAN             NOT NULL DEFAULT TRUE,
+    stock_quantity         INTEGER,
+    min_stock              INTEGER,
+    stock_alert_threshold  INTEGER,
+    created_at             TIMESTAMPTZ         NOT NULL DEFAULT NOW(),
+    updated_at             TIMESTAMPTZ         NOT NULL DEFAULT NOW()
 );
 
 -- ── 11. transactions ─────────────────────────────────────────
