@@ -171,19 +171,19 @@ INSERT INTO wallets (id, client_id, balance, status, created_at, updated_at) VAL
 -- ============================================================
 --  9. PRODUCTS
 -- ============================================================
-INSERT INTO products (id, merchant_id, name, description, price, category, is_available, stock_quantity, created_at, updated_at) VALUES
+INSERT INTO products (id, merchant_id, name, description, sku, price, cost_price, category, is_available, stock_quantity, min_stock, stock_alert_threshold, created_at, updated_at) VALUES
 -- Kantin Ceria
-('prod-kantin-01', 'm-kantin-000-0000-000000000001', 'Nasi Goreng Spesial', 'Nasi goreng ayam + telur', 15000.00, 'makanan', TRUE, 50, NOW() - INTERVAL '17 days', NOW()),
-('prod-kantin-02', 'm-kantin-000-0000-000000000001', 'Mie Goreng', 'Mie goreng dengan sayur', 12000.00, 'makanan', TRUE, 40, NOW() - INTERVAL '17 days', NOW()),
-('prod-kantin-03', 'm-kantin-000-0000-000000000001', 'Es Teh Manis', 'Teh manis dingin 350ml', 5000.00, 'minuman', TRUE, 100, NOW() - INTERVAL '17 days', NOW()),
-('prod-kantin-04', 'm-kantin-000-0000-000000000001', 'Bakwan Sayur', '3 pcs bakwan sayur segar', 5000.00, 'snack', TRUE, 80, NOW() - INTERVAL '17 days', NOW()),
-('prod-kantin-05', 'm-kantin-000-0000-000000000001', 'Jus Jeruk', 'Jus jeruk segar tanpa gula', 8000.00, 'minuman', TRUE, 30, NOW() - INTERVAL '17 days', NOW()),
+('prod-kantin-01', 'm-kantin-000-0000-000000000001', 'Nasi Goreng Spesial', 'Nasi goreng ayam + telur', 'KANT-NSGOR-01', 15000.00, 10000.00, 'makanan', TRUE, 50, 10, 20, NOW() - INTERVAL '17 days', NOW()),
+('prod-kantin-02', 'm-kantin-000-0000-000000000001', 'Mie Goreng',          'Mie goreng dengan sayur',  'KANT-MIGOR-01', 12000.00,  8000.00, 'makanan', TRUE, 40, 10, 20, NOW() - INTERVAL '17 days', NOW()),
+('prod-kantin-03', 'm-kantin-000-0000-000000000001', 'Es Teh Manis',        'Teh manis dingin 350ml',   'KANT-ESTEH-01',  5000.00,  2000.00, 'minuman', TRUE, 100, 20, 40, NOW() - INTERVAL '17 days', NOW()),
+('prod-kantin-04', 'm-kantin-000-0000-000000000001', 'Bakwan Sayur',        '3 pcs bakwan sayur segar', 'KANT-BKWN-01',  5000.00,  2500.00, 'snack',   TRUE,  8, 10, 20, NOW() - INTERVAL '17 days', NOW()),
+('prod-kantin-05', 'm-kantin-000-0000-000000000001', 'Jus Jeruk',           'Jus jeruk segar tanpa gula','KANT-JJERUK-01', 8000.00, 4000.00, 'minuman', TRUE, 30, 10, 20, NOW() - INTERVAL '17 days', NOW()),
 -- Minimarket SDA
-('prod-mini-001', 'm-mini-0000-0000-000000000001', 'Indomie Goreng', 'Mie instan rasa goreng', 3500.00, 'makanan', TRUE, 200, NOW() - INTERVAL '16 days', NOW()),
-('prod-mini-002', 'm-mini-0000-0000-000000000001', 'Air Mineral 600ml', 'Air mineral botol', 5000.00, 'minuman', TRUE, 150, NOW() - INTERVAL '16 days', NOW()),
-('prod-mini-003', 'm-mini-0000-0000-000000000001', 'Roti Tawar', 'Roti tawar 10 lembar', 8000.00, 'makanan', TRUE, 30, NOW() - INTERVAL '16 days', NOW()),
-('prod-mini-004', 'm-mini-0000-0000-000000000001', 'Pensil 2B', 'Pensil standar ujian', 3000.00, 'jasa', TRUE, 100, NOW() - INTERVAL '16 days', NOW()),
-('prod-mini-005', 'm-mini-0000-0000-000000000001', 'Buku Tulis', 'Buku tulis 40 lembar', 7000.00, 'lainnya', TRUE, 60, NOW() - INTERVAL '16 days', NOW());
+('prod-mini-001', 'm-mini-0000-0000-000000000001', 'Indomie Goreng',  'Mie instan rasa goreng',   'MINI-INDOG-01',  3500.00, 2500.00, 'makanan',  TRUE, 200, 30, 50, NOW() - INTERVAL '16 days', NOW()),
+('prod-mini-002', 'm-mini-0000-0000-000000000001', 'Air Mineral 600ml','Air mineral botol',        'MINI-AIRMIN-01', 5000.00, 2000.00, 'minuman',  TRUE, 150, 30, 50, NOW() - INTERVAL '16 days', NOW()),
+('prod-mini-003', 'm-mini-0000-0000-000000000001', 'Roti Tawar',      'Roti tawar 10 lembar',     'MINI-ROTITW-01', 8000.00, 5000.00, 'makanan',  TRUE,  5, 10, 15, NOW() - INTERVAL '16 days', NOW()),
+('prod-mini-004', 'm-mini-0000-0000-000000000001', 'Pensil 2B',       'Pensil standar ujian',     'MINI-PENS2B-01', 3000.00, 1500.00, 'lainnya',  TRUE, 100, 20, 30, NOW() - INTERVAL '16 days', NOW()),
+('prod-mini-005', 'm-mini-0000-0000-000000000001', 'Buku Tulis',      'Buku tulis 40 lembar',     'MINI-BUKUTR-01', 7000.00, 4500.00, 'lainnya',  TRUE, 60, 15, 25, NOW() - INTERVAL '16 days', NOW());
 
 -- ============================================================
 --  10. TRANSACTIONS
