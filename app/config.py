@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # Storage
     FIRMWARE_STORAGE_BUCKET: str = "firmware"
     BIOMETRIC_STORAGE_BUCKET: str = "biometric-assets"
+    MERCHANT_STORAGE_BUCKET: str = "merchant-assets"
+    PRODUCT_STORAGE_BUCKET: str = "product-assets"
 
     # CORS
     CORS_ORIGINS: List[str] = ["*"]  # Allow all for dev; restrict in production

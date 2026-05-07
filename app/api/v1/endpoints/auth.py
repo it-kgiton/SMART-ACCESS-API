@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.core.exceptions import BadRequestException
 from app.schemas.auth import (
     LoginRequest, UserCreate, UserResponse, UserUpdate,
-    ProfileUpdateName, ProfileChangePassword,
+    ProfileUpdateName, ProfileChangePassword, ProfileUpdateContact,
 )
 from app.schemas.approval import ApprovalCreate
 from app.services.auth_service import AuthService
@@ -85,6 +85,19 @@ async def change_my_password(
     service = AuthService(db)
     await service.change_password(current_user["sub"], data.current_password, data.new_password)
     return {"success": True, "message": "Password changed"}
+
+
+@router.patch("/me/contact")
+async def update_my_contact(
+    data: ProfileUpdateContact,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    service = AuthService(db)
+    user = await service.update_profile_contact(
+        current_user["sub"], data.email, data.phone
+    )
+    return {"success": True, "data": UserResponse.model_validate(user)}
 
 
 @router.get("/users")

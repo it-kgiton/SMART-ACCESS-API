@@ -29,6 +29,7 @@ class MerchantUpdate(BaseModel):
     email: Optional[str] = None
     address: Optional[str] = None
     status: Optional[str] = None
+    logo_url: Optional[str] = None
 
 
 class MerchantResponse(BaseModel):

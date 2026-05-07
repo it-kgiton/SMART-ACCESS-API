@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import NotFoundException, BadRequestException
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.services.product_service import ProductService
+from app.services.storage_service import StorageService
 from app.dependencies import get_current_user, require_any_role
 
 router = APIRouter()
@@ -63,6 +64,34 @@ async def update_product(
 ):
     service = ProductService(db)
     return await service.update(product_id, data)
+
+
+@router.post("/{product_id}/image", response_model=ProductResponse)
+async def upload_product_image(
+    product_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
+):
+    if not file:
+        raise BadRequestException("Image file is required")
+
+    service = ProductService(db)
+    product = await service.get_by_id(product_id)
+    if not product:
+        raise NotFoundException("Product")
+
+    file_bytes = await file.read()
+    storage = StorageService()
+    public_url = storage.upload_product_image(
+        product_id,
+        file_bytes,
+        file.filename or "product.jpg",
+        file.content_type,
+    )
+
+    updated = await service.update(product_id, ProductUpdate(image_url=public_url))
+    return ProductResponse.model_validate(updated)
 
 
 @router.delete("/{product_id}")

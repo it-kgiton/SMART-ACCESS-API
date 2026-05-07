@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.auth import UserCreate, LoginRequest
 from app.core.security import verify_password, hash_password, create_access_token
-from app.core.exceptions import BadRequestException, UnauthorizedException, NotFoundException
+from app.core.exceptions import BadRequestException, UnauthorizedException, NotFoundException, ConflictException
 from app.config import settings
 
 
@@ -142,6 +142,29 @@ class AuthService:
         if not verify_password(current_password, user.hashed_password):
             raise UnauthorizedException("Current password is incorrect")
         user.hashed_password = hash_password(new_password)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def update_profile_contact(
+        self, user_id: str, email: str, phone: Optional[str] = None
+    ) -> User:
+        email_normalized = email.strip().lower()
+        if not email_normalized:
+            raise BadRequestException("Email cannot be empty")
+
+        result = await self.db.execute(
+            select(User).where(User.email == email_normalized, User.id != user_id)
+        )
+        if result.scalar_one_or_none():
+            raise ConflictException("Email already registered")
+
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise NotFoundException("User")
+
+        user.email = email_normalized
+        user.phone = phone.strip() if phone else None
         await self.db.commit()
         await self.db.refresh(user)
         return user

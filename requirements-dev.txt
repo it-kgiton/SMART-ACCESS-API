@@ -9,6 +9,7 @@ pydantic-settings==2.5.0
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0
 alembic==1.13.3
+supabase==2.7.0
 
 # Auth & Security
 python-jose[cryptography]==3.3.0

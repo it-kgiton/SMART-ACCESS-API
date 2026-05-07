@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import NotFoundException, BadRequestException
 from app.schemas.merchant import MerchantCreate, MerchantUpdate, MerchantResponse, WithdrawalRequest
 from app.services.merchant_service import MerchantService
+from app.services.storage_service import StorageService
 from app.services.transaction_service import TransactionService
 from app.dependencies import require_any_role
 
@@ -77,6 +78,34 @@ async def update_merchant(
 ):
     service = MerchantService(db)
     return await service.update(merchant_id, data)
+
+
+@router.post("/{merchant_id}/logo", response_model=MerchantResponse)
+async def upload_merchant_logo(
+    merchant_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("super_admin", "admin_hub", "admin_ops", "merchant")),
+):
+    if not file:
+        raise BadRequestException("Logo file is required")
+
+    service = MerchantService(db)
+    merchant = await service.get_by_id(merchant_id)
+    if not merchant:
+        raise NotFoundException("Merchant")
+
+    file_bytes = await file.read()
+    storage = StorageService()
+    public_url = storage.upload_merchant_logo(
+        merchant_id,
+        file_bytes,
+        file.filename or "logo.jpg",
+        file.content_type,
+    )
+
+    updated = await service.update(merchant_id, MerchantUpdate(logo_url=public_url))
+    return MerchantResponse.model_validate(updated)
 
 
 @router.post("/{merchant_id}/suspend")
