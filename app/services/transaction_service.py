@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional
 from sqlalchemy import select, func
@@ -406,7 +406,9 @@ class TransactionService:
         return device
 
     async def _get_today_spent(self, client_id: str) -> Decimal:
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        # Use WIB (UTC+7) midnight as the daily reset boundary
+        wib = timezone(timedelta(hours=7))
+        today_start = datetime.now(wib).replace(hour=0, minute=0, second=0, microsecond=0)
         result = await self.db.execute(
             select(func.coalesce(func.sum(Transaction.amount), 0)).where(
                 Transaction.client_id == client_id,
