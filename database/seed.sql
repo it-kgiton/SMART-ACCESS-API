@@ -157,7 +157,12 @@ INSERT INTO devices (id, device_serial, school_id, merchant_id, device_type, nam
  'sch-smpa-000-0000-000000000001', NULL,
  'fingerprint_reader', 'SmartPay FP-02 SMP Nusantara',
  'LK-SMPA-002-XXXX', '2.0.5', '1.5.0', 'active', TRUE,
- NOW() - INTERVAL '2 hours', NOW() - INTERVAL '10 days', NOW());
+ NOW() - INTERVAL '2 hours', NOW() - INTERVAL '10 days', NOW()),
+('dev-fp-0000-0000-000000000003', 'SDA-DEV-FP-SKY-001',
+ 'sch-sda-0000-0000-000000000001', 'm-kantin-000-0000-000000000001',
+ 'combo_device', 'ESP32 Dev — Kantin Ceria',
+ 'CE96C-FLQKH-KFEEM-QVVSQ-CD3UP', '5.2.0', NULL, 'active', TRUE,
+ NOW(), NOW(), NOW());
 
 -- ============================================================
 --  8. WALLETS
