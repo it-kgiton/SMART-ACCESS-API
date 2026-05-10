@@ -245,6 +245,8 @@ async def device_websocket(websocket: WebSocket, license_key: str):
         while True:
             # Receive message from device (may be text or binary frame)
             raw = await websocket.receive()
+            if raw.get("type") == "websocket.disconnect":
+                raise WebSocketDisconnect(code=raw.get("code", 1000))
             if raw.get("bytes") is not None:
                 # Binary frame (e.g. fingerprint image after enroll_image) — just consume
                 continue
