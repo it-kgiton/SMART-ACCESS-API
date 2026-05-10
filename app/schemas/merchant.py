@@ -30,6 +30,9 @@ class MerchantUpdate(BaseModel):
     address: Optional[str] = None
     status: Optional[str] = None
     logo_url: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    account_holder_name: Optional[str] = None
 
 
 class MerchantResponse(BaseModel):
@@ -43,6 +46,9 @@ class MerchantResponse(BaseModel):
     email: Optional[str] = None
     address: Optional[str] = None
     logo_url: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    account_holder_name: Optional[str] = None
     balance: float
     status: str
     created_at: datetime

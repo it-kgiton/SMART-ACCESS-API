@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.exceptions import NotFoundException, BadRequestException
@@ -9,6 +10,12 @@ from app.services.merchant_service import MerchantService
 from app.services.storage_service import StorageService
 from app.services.transaction_service import TransactionService
 from app.dependencies import require_any_role
+
+
+class BankAccountUpdate(BaseModel):
+    bank_name: str
+    account_number: str
+    account_holder_name: str
 
 router = APIRouter()
 
@@ -40,6 +47,27 @@ async def list_merchants(
         "data": [MerchantResponse.model_validate(m) for m in merchants],
         "total": total,
     }
+
+
+@router.patch("/me/bank-account", response_model=MerchantResponse)
+async def update_my_bank_account(
+    data: BankAccountUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_any_role("merchant")),
+):
+    merchant_id = current_user.get("merchant_id")
+    if not merchant_id:
+        raise NotFoundException("Merchant")
+    service = MerchantService(db)
+    updated = await service.update(
+        merchant_id,
+        MerchantUpdate(
+            bank_name=data.bank_name,
+            account_number=data.account_number,
+            account_holder_name=data.account_holder_name,
+        ),
+    )
+    return MerchantResponse.model_validate(updated)
 
 
 @router.get("/me", response_model=MerchantResponse)
@@ -97,7 +125,7 @@ async def upload_merchant_logo(
 
     file_bytes = await file.read()
     storage = StorageService()
-    public_url = storage.upload_merchant_logo(
+    public_url = await storage.upload_merchant_logo(
         merchant_id,
         file_bytes,
         file.filename or "logo.jpg",

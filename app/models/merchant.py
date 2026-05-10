@@ -44,6 +44,9 @@ class Merchant(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=True)
     address: Mapped[str] = mapped_column(Text, nullable=True)
     logo_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    bank_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    account_number: Mapped[str] = mapped_column(String(50), nullable=True)
+    account_holder_name: Mapped[str] = mapped_column(String(255), nullable=True)
     balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"))
     status: Mapped[str] = mapped_column(
         SAEnum(MerchantStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),

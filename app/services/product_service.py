@@ -1,8 +1,9 @@
 from typing import Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
+from app.models.transaction import TransactionItem
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.core.exceptions import NotFoundException
 
@@ -76,6 +77,13 @@ class ProductService:
         product = await self.get_by_id(product_id)
         if not product:
             raise NotFoundException("Product")
+        # Nullify FK references in transaction_items before deleting
+        # (product_name/price already stored in transaction_items, history stays intact)
+        await self.db.execute(
+            update(TransactionItem)
+            .where(TransactionItem.product_id == product_id)
+            .values(product_id=None)
+        )
         await self.db.delete(product)
         await self.db.commit()
         return True

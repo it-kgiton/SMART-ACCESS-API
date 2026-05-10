@@ -83,7 +83,7 @@ async def upload_product_image(
 
     file_bytes = await file.read()
     storage = StorageService()
-    public_url = storage.upload_product_image(
+    public_url = await storage.upload_product_image(
         product_id,
         file_bytes,
         file.filename or "product.jpg",

@@ -83,14 +83,16 @@ WHERE id = 'u-admhub-000-0000-000000000001';
 -- ============================================================
 --  4. MERCHANTS
 -- ============================================================
-INSERT INTO merchants (id, user_id, school_id, business_name, business_type, owner_name, phone, email, address, balance, status, created_at, updated_at) VALUES
+INSERT INTO merchants (id, user_id, school_id, business_name, business_type, owner_name, phone, email, address, balance, status, bank_name, account_number, account_holder_name, created_at, updated_at) VALUES
 ('m-kantin-000-0000-000000000001', 'u-merch-0000-0000-000000000001',
  'sch-sda-0000-0000-000000000001', 'Kantin Ceria', 'kantin',
  'Ibu Sari Dewi', '081200000004', 'kantin.ceria@sda.id', 'Gedung A Lt.1', 2450000.00, 'active',
+ 'BCA', '1234567890', 'Ibu Sari Dewi',
  NOW() - INTERVAL '18 days', NOW()),
 ('m-mini-0000-0000-000000000001', 'u-merch-0000-0000-000000000002',
  'sch-sda-0000-0000-000000000001', 'Minimarket SDA', 'minimarket',
  'Pak Hendra', '081200000005', 'minimarket.sda@sda.id', 'Gedung B Lt.1', 1800000.00, 'active',
+ 'Mandiri', '0987654321', 'Pak Hendra',
  NOW() - INTERVAL '17 days', NOW());
 
 -- Update merchant users with merchant_id
