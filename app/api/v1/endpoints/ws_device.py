@@ -31,6 +31,8 @@ from loguru import logger
 
 from app.core.database import AsyncSessionLocal
 from app.models.device import Device, DeviceStatus
+from app.models.biometric import FingerprintCredential, CredentialStatus
+from app.models.client import Client
 from app.services.enrollment_service import EnrollmentService
 
 
@@ -164,6 +166,66 @@ class DeviceConnectionManager:
         await self._notify_watchers(license_key, event_data)
 
 
+async def _send_verify_templates(license_key: str) -> None:
+    """
+    Fetch all active fingerprint templates for the device's school and
+    send them to the device in batches as verify_templates commands.
+    """
+    BATCH_SIZE = 5
+    try:
+        async with AsyncSessionLocal() as db:
+            # Get device to find school_id
+            dev_result = await db.execute(
+                select(Device).where(Device.license_key == license_key)
+            )
+            device = dev_result.scalar_one_or_none()
+            if not device:
+                logger.warning(f"[WS] verify_request: device not found for {license_key}")
+                return
+
+            # Fetch all active fingerprint credentials for this school
+            cred_result = await db.execute(
+                select(FingerprintCredential)
+                .join(Client, Client.id == FingerprintCredential.client_id)
+                .where(Client.school_id == device.school_id)
+                .where(FingerprintCredential.status == CredentialStatus.ACTIVE)
+            )
+            creds = cred_result.scalars().all()
+
+        total = len(creds)
+        logger.info(f"[WS] Sending {total} templates to {license_key} for verify")
+
+        if total == 0:
+            await device_manager.send_command(license_key, {
+                "cmd": "verify_templates",
+                "batch": 1, "total_batches": 1, "has_more": False,
+                "templates": []
+            })
+            return
+
+        total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
+        for batch_num in range(1, total_batches + 1):
+            start = (batch_num - 1) * BATCH_SIZE
+            batch = creds[start:start + BATCH_SIZE]
+            templates = [
+                {
+                    "slot": start + i + 1,
+                    "customer_id": cred.client_id,
+                    "template": base64.b64encode(cred.template_data).decode()
+                }
+                for i, cred in enumerate(batch)
+            ]
+            await device_manager.send_command(license_key, {
+                "cmd": "verify_templates",
+                "batch": batch_num,
+                "total_batches": total_batches,
+                "has_more": batch_num < total_batches,
+                "templates": templates
+            })
+    except Exception as exc:
+        logger.error(f"[WS] Failed to send verify templates to {license_key}: {exc}")
+
+
 # Global connection manager
 device_manager = DeviceConnectionManager()
 
@@ -181,8 +243,14 @@ async def device_websocket(websocket: WebSocket, license_key: str):
     
     try:
         while True:
-            # Receive message from device
-            data = await websocket.receive_text()
+            # Receive message from device (may be text or binary frame)
+            raw = await websocket.receive()
+            if raw.get("bytes") is not None:
+                # Binary frame (e.g. fingerprint image after enroll_image) — just consume
+                continue
+            data = raw.get("text", "")
+            if not data:
+                continue
             
             try:
                 msg = json.loads(data)
@@ -255,8 +323,11 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                     if event == "verify_ok":
                         logger.info(f"[WS] Verify OK: {license_key} customer={msg.get('customer_id')} score={msg.get('confidence')}")
                     elif event == "verify_request":
-                        # Device requesting templates for matching
+                        # Device requesting templates — fetch from DB and send in batches
                         logger.info(f"[WS] Verify request from {license_key}")
+                        asyncio.create_task(
+                            _send_verify_templates(license_key)
+                        )
                 
                 elif event == "pong":
                     pass  # Response to ping
@@ -269,7 +340,7 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                     await device_manager.forward_to_watchers(license_key, msg)
                     
             except json.JSONDecodeError:
-                logger.warning(f"[WS] Invalid JSON from {license_key}: {data[:100]}")
+                logger.warning(f"[WS] Invalid JSON from {license_key}: {data[:200]}")
                 
     except WebSocketDisconnect:
         device_manager.disconnect(license_key)
