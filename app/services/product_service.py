@@ -17,11 +17,15 @@ class ProductService:
             merchant_id=data.merchant_id,
             name=data.name,
             description=data.description,
+            sku=data.sku,
             price=data.price,
+            cost_price=data.cost_price,
             category=data.category or "lainnya",
             image_url=data.image_url,
             is_available=data.is_available,
             stock_quantity=data.stock_quantity,
+            min_stock=data.min_stock,
+            stock_alert_threshold=data.stock_alert_threshold,
         )
         self.db.add(product)
         await self.db.commit()
