@@ -47,6 +47,8 @@ class DeviceConnectionManager:
         self.device_info: Dict[str, dict] = {}
         # license_key -> list of dashboard websockets watching this device
         self.dashboard_watchers: Dict[str, list] = {}
+        # license_key -> enrollment start timestamp (None = not enrolling)
+        self.active_enrollment: Dict[str, float] = {}
     
     async def connect(self, license_key: str, websocket: WebSocket) -> bool:
         """Accept device connection if license_key is registered."""
@@ -80,6 +82,7 @@ class DeviceConnectionManager:
             del self.active_connections[license_key]
         if license_key in self.device_info:
             del self.device_info[license_key]
+        self.clear_enrollment(license_key)
         logger.info(f"[WS] Device disconnected: {license_key}")
         
         # Notify dashboard watchers
@@ -87,6 +90,24 @@ class DeviceConnectionManager:
             "event": "device_offline",
             "license_key": license_key
         }))
+
+    def start_enrollment(self, license_key: str):
+        """Mark a device as currently enrolling."""
+        self.active_enrollment[license_key] = datetime.now(timezone.utc).timestamp()
+
+    def clear_enrollment(self, license_key: str):
+        """Clear enrollment tracking for a device."""
+        self.active_enrollment.pop(license_key, None)
+
+    def is_enrolling(self, license_key: str) -> bool:
+        """Return True if device has an enrollment in progress (max 120s TTL)."""
+        ts = self.active_enrollment.get(license_key)
+        if ts is None:
+            return False
+        if (datetime.now(timezone.utc).timestamp() - ts) > 120:
+            self.active_enrollment.pop(license_key, None)
+            return False
+        return True
     
     def is_connected(self, license_key: str) -> bool:
         return license_key in self.active_connections
@@ -200,6 +221,7 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                                "enroll_scan2", "enroll_retry", "enroll_ok", 
                                "enroll_image", "error"):
                     if event == "enroll_ok":
+                        device_manager.clear_enrollment(license_key)
                         template_b64 = msg.get("template")
                         client_id    = msg.get("customer_id")
                         finger_index = msg.get("finger_id", 1)
@@ -217,6 +239,9 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                         else:
                             logger.warning(f"[WS] enroll_ok missing template or customer_id: {license_key}")
                         await device_manager.forward_to_watchers(license_key, {**msg, "saved": saved})
+                    elif event == "error":
+                        device_manager.clear_enrollment(license_key)
+                        await device_manager.forward_to_watchers(license_key, msg)
                     else:
                         # Forward other enrollment events to watchers
                         await device_manager.forward_to_watchers(license_key, msg)
@@ -292,13 +317,29 @@ async def dashboard_device_websocket(websocket: WebSocket, license_key: str):
                 cmd = msg.get("cmd")
                 
                 if cmd:
-                    # Forward command to device
-                    success = await device_manager.send_command(license_key, msg)
-                    if not success:
-                        await websocket.send_json({
-                            "event": "error",
-                            "error": "Device not connected"
-                        })
+                    if cmd == "enroll":
+                        if device_manager.is_enrolling(license_key):
+                            await websocket.send_json({
+                                "event": "error",
+                                "error": "Device sedang dalam proses enrollment. Mohon tunggu atau coba beberapa saat lagi."
+                            })
+                        else:
+                            device_manager.start_enrollment(license_key)
+                            success = await device_manager.send_command(license_key, msg)
+                            if not success:
+                                device_manager.clear_enrollment(license_key)
+                                await websocket.send_json({
+                                    "event": "error",
+                                    "error": "Device not connected"
+                                })
+                    else:
+                        # Forward other commands to device
+                        success = await device_manager.send_command(license_key, msg)
+                        if not success:
+                            await websocket.send_json({
+                                "event": "error",
+                                "error": "Device not connected"
+                            })
             except json.JSONDecodeError:
                 pass
                 
