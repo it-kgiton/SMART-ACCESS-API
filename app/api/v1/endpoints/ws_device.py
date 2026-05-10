@@ -106,7 +106,7 @@ class DeviceConnectionManager:
         ts = self.active_enrollment.get(license_key)
         if ts is None:
             return False
-        if (datetime.now(timezone.utc).timestamp() - ts) > 120:
+        if (datetime.now(timezone.utc).timestamp() - ts) > 45:
             self.active_enrollment.pop(license_key, None)
             return False
         return True
@@ -257,6 +257,8 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                 event = msg.get("event")
                 
                 if event == "connected":
+                    # Clear any stale enrollment lock from previous session
+                    device_manager.clear_enrollment(license_key)
                     # Store device info
                     device_manager.set_device_info(license_key, {
                         "firmware": msg.get("firmware"),
@@ -446,3 +448,11 @@ async def send_device_command(license_key: str, command: dict):
     
     success = await device_manager.send_command(license_key, command)
     return {"success": success}
+
+
+@router.post("/devices/{license_key}/clear-enrollment-lock")
+async def clear_enrollment_lock(license_key: str):
+    """Force-clear a stuck enrollment lock on a device (admin use)."""
+    was_locked = device_manager.is_enrolling(license_key)
+    device_manager.clear_enrollment(license_key)
+    return {"success": True, "was_locked": was_locked}
