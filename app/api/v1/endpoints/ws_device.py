@@ -22,6 +22,7 @@ Protocol (from ESP32 firmware):
 
 import json
 import asyncio
+import base64
 from typing import Dict, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -30,6 +31,7 @@ from loguru import logger
 
 from app.core.database import AsyncSessionLocal
 from app.models.device import Device, DeviceStatus
+from app.services.enrollment_service import EnrollmentService
 
 
 router = APIRouter()
@@ -197,11 +199,27 @@ async def device_websocket(websocket: WebSocket, license_key: str):
                 elif event in ("enroll_start", "enroll_scan1", "enroll_scan1_ok", 
                                "enroll_scan2", "enroll_retry", "enroll_ok", 
                                "enroll_image", "error"):
-                    # Forward enrollment events to watchers
-                    await device_manager.forward_to_watchers(license_key, msg)
-                    
                     if event == "enroll_ok":
-                        logger.info(f"[WS] Enroll OK: {license_key} customer={msg.get('customer_id')}")
+                        template_b64 = msg.get("template")
+                        client_id    = msg.get("customer_id")
+                        finger_index = msg.get("finger_id", 1)
+                        saved = False
+                        if template_b64 and client_id:
+                            try:
+                                template_data = base64.b64decode(template_b64)
+                                async with AsyncSessionLocal() as db:
+                                    svc = EnrollmentService(db)
+                                    await svc.enroll_fingerprint(client_id, template_data, finger_index)
+                                saved = True
+                                logger.info(f"[WS] Enroll saved: {license_key} customer={client_id} finger={finger_index}")
+                            except Exception as exc:
+                                logger.error(f"[WS] Failed to save fingerprint: {exc}")
+                        else:
+                            logger.warning(f"[WS] enroll_ok missing template or customer_id: {license_key}")
+                        await device_manager.forward_to_watchers(license_key, {**msg, "saved": saved})
+                    else:
+                        # Forward other enrollment events to watchers
+                        await device_manager.forward_to_watchers(license_key, msg)
                 
                 elif event in ("verify_start", "verify_scan", "verify_processing",
                                "verify_request", "verify_batch_ok", "verify_ok", 
